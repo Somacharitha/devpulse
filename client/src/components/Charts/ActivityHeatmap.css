@@ -1,0 +1,18 @@
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(20, 12px);
+  gap: 4px;
+  margin-top: 20px;
+}
+
+.cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #16161F;
+}
+
+.level-1 { background: #0e4429; }
+.level-2 { background: #006d32; }
+.level-3 { background: #26a641; }
+.level-4 { background: #39d353; }

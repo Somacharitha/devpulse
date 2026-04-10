@@ -165,3 +165,124 @@
   gap: 16px;
   margin-bottom: 24px;
 }
+/* Repos Section */
+.repos-section {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.section-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-count {
+  background: var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.repos-list {
+  overflow-y: auto;
+  max-height: 600px;
+  padding-right: 4px;
+}
+
+/* Repo Detail */
+.repo-detail {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.repo-detail-name {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.repo-detail-url {
+  color: var(--muted);
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  margin-bottom: 16px;
+}
+
+.repo-detail-desc {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.repo-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.repo-detail-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.repo-detail-link:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: 'Space Mono', monospace;
+}
+
+.tab.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.tab:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.activity-placeholder {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+}
