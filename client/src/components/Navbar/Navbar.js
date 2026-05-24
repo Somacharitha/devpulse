@@ -54,7 +54,6 @@ function Navbar({ onSearch }) {
           target="_blank"
           rel="noreferrer"
           className="github-link"
-    
           <GitBranch size={18} />
       </div>
     </nav>

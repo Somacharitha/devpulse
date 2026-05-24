@@ -5,6 +5,7 @@ import RepoChart from '../../components/Charts/RepoChart';
 import LanguageChart from '../../components/Charts/LanguageChart';
 import ActivityHeatmap from '../../components/Charts/ActivityHeatmap';
 import './Dashboard.css';
+import './../../components/Skeleton/Skeleton.css';
 
 function Dashboard({ username }) {
   const [userData, setUserData] = useState(null);
@@ -12,58 +13,82 @@ function Dashboard({ username }) {
   const [loading, setLoading] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [error, setError] = useState(null);
+  const [activityData, setActivityData] = useState({});
 
   useEffect(() => {
     if (!username) return;
 
-    setLoading(true);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setUserData(null);
+        setRepos([]);
 
-    setTimeout(() => {
-      const mockUser = {
-        login: username,
-        name: "Demo User",
-        avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
-        bio: "Full Stack Developer 🚀",
-        location: "India",
-        public_repos: 12,
-        followers: 120,
-        following: 45,
-      };
+        // USER API
+        const userRes = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/user/${username}`
+        );
 
-      const mockRepos = [
-        {
-          id: 1,
-          name: "devpulse",
-          stargazers_count: 25,
-          forks_count: 10,
-          language: "JavaScript",
-          updated_at: new Date().toISOString(),
-          description: "GitHub analytics dashboard",
-          open_issues_count: 2,
-          html_url: "https://github.com/demo/devpulse",
-        },
-        {
-          id: 2,
-          name: "portfolio",
-          stargazers_count: 15,
-          forks_count: 5,
-          language: "React",
-          updated_at: new Date().toISOString(),
-          description: "Personal portfolio website",
-          open_issues_count: 1,
-          html_url: "https://github.com/demo/portfolio",
-        },
-      ];
+        if (userRes.status === 404) {
+          setError({ type: 'not_found', message: `"${username}" not found on GitHub` });
+          return;
+        }
 
-      setUserData(mockUser);
-      setRepos(mockRepos);
-      setSelectedRepo(mockRepos[0]);
-      setLoading(false);
-    }, 800);
+        if (userRes.status === 403) {
+          setError({ type: 'rate_limit', message: 'GitHub API rate limit hit. Try again in a minute.' });
+          return;
+        }
+
+        if (userRes.status !== 200) {
+          setError({ type: 'server', message: 'Something went wrong. Try again.' });
+          return;
+        }
+
+        const userData = await userRes.json();
+
+        // REPOS API
+        const reposRes = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/repos/${username}`
+        );
+
+        const reposData = reposRes.status === 200
+          ? await reposRes.json()
+          : [];
+
+        // EVENTS API
+        const eventsRes = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/events/${username}`
+        );
+
+        const eventsData = eventsRes.status === 200
+          ? await eventsRes.json()
+          : {};
+
+        // SAFE SET
+        setUserData(userData);
+        setRepos(reposData);
+        setActivityData(eventsData);
+        setSelectedRepo(reposData.length > 0 ? reposData[0] : null);
+
+      } catch (error) {
+        console.error(error);
+        setError({ type: 'server', message: 'Could not connect to server. Is it running?' });
+        setUserData(null);
+        setRepos([]);
+        setSelectedRepo(null);
+        setActivityData({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [username]);
 
-  const totalStars = repos.reduce((sum, r) => sum + r.stargazers_count, 0);
-  const totalForks = repos.reduce((sum, r) => sum + r.forks_count, 0);
+  const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
+  const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
 
   const topLanguage = repos
     .map(r => r.language)
@@ -79,27 +104,56 @@ function Dashboard({ username }) {
   return (
     <div className="dashboard">
 
-      {!username && (
-        <div className="dashboard-hero">
-          <div className="hero-glow" />
-          <h1 className="hero-title">
-            GitHub Analytics<br />
-            <span className="hero-accent">Reimagined.</span>
-          </h1>
-          <p className="hero-sub">
-            Enter any GitHub username above to explore repos,
-            languages, and activity — beautifully.
-          </p>
-        </div>
-      )}
-
+      {/* LOADING — skeleton */}
       {loading && (
-        <div className="dashboard-loading">
-          <div className="loading-spinner" />
-          <p>Fetching data...</p>
+        <div className="dashboard">
+          <div className="skeleton-profile">
+            <div className="skeleton skeleton-avatar" />
+            <div className="skeleton-profile-lines">
+              <div className="skeleton skeleton-line-lg" />
+              <div className="skeleton skeleton-line-md" />
+              <div className="skeleton skeleton-line-sm" />
+            </div>
+          </div>
+          <div className="stat-cards-grid">
+            <div className="skeleton skeleton-stat-card" />
+            <div className="skeleton skeleton-stat-card" />
+            <div className="skeleton skeleton-stat-card" />
+            <div className="skeleton skeleton-stat-card" />
+          </div>
+          <div style={{ marginTop: '24px' }}>
+            <div className="skeleton skeleton-repo-card" />
+            <div className="skeleton skeleton-repo-card" />
+            <div className="skeleton skeleton-repo-card" />
+          </div>
         </div>
       )}
 
+      {/* ERROR STATE */}
+{!loading && error && (
+  <div className="error-card">
+    <div className="error-icon">
+      {error.type === 'not_found' && '🔍'}
+      {error.type === 'rate_limit' && '⏳'}
+      {error.type === 'server' && '⚠️'}
+    </div>
+    <h3 className="error-title">
+      {error.type === 'not_found' && 'User not found'}
+      {error.type === 'rate_limit' && 'Rate limit hit'}
+      {error.type === 'server' && 'Server error'}
+    </h3>
+    <p className="error-message">{error.message}</p>
+  </div>
+)}
+
+{/* EMPTY STATE — no search yet */}
+{!loading && !error && !userData && (
+  <div className="empty-state">
+    <p>Enter a GitHub username above to get started</p>
+  </div>
+)}
+
+      {/* MAIN DATA */}
       {userData && !loading && (
         <>
           {/* Tabs */}
@@ -110,14 +164,12 @@ function Dashboard({ username }) {
             >
               Overview
             </button>
-
             <button
               className={activeTab === 'repos' ? 'tab active' : 'tab'}
               onClick={() => setActiveTab('repos')}
             >
               Repositories
             </button>
-
             <button
               className={activeTab === 'activity' ? 'tab active' : 'tab'}
               onClick={() => setActiveTab('activity')}
@@ -130,59 +182,34 @@ function Dashboard({ username }) {
           {activeTab === 'overview' && (
             <>
               <div className="profile-card">
-                <img src={userData.avatar_url} alt="avatar" className="profile-avatar" />
-                <div className="profile-info">
-                  <h2 className="profile-name">{userData.name || userData.login}</h2>
-                  <p className="profile-username">@{userData.login}</p>
-                  <p className="profile-bio">{userData.bio}</p>
-                  <p className="profile-location">📍 {userData.location}</p>
-                </div>
-
-                <div className="profile-stats">
-                  <div className="profile-stat">
-                    <span className="profile-stat-value">{userData.public_repos}</span>
-                    <span className="profile-stat-label">Repos</span>
-                  </div>
-                  <div className="profile-stat">
-                    <span className="profile-stat-value">{userData.followers}</span>
-                    <span className="profile-stat-label">Followers</span>
-                  </div>
-                  <div className="profile-stat">
-                    <span className="profile-stat-value">{userData.following}</span>
-                    <span className="profile-stat-label">Following</span>
-                  </div>
+                <img src={userData.avatar_url} alt="avatar" />
+                <div>
+                  <h2>{userData.name || userData.login}</h2>
+                  <p>@{userData.login}</p>
+                  <p>{userData.bio}</p>
+                  <p>📍 {userData.location}</p>
                 </div>
               </div>
 
               <div className="stat-cards-grid">
-                <StatCard label="Total Stars" value={totalStars} />
-                <StatCard label="Total Forks" value={totalForks} />
+                <StatCard label="Stars" value={totalStars} />
+                <StatCard label="Forks" value={totalForks} />
                 <StatCard label="Repos" value={userData.public_repos} />
                 <StatCard label="Top Language" value={mostUsedLang} />
               </div>
 
-              <div style={{ marginTop: '24px' }}>
-                <div className="section-title">Stars Overview</div>
-                <RepoChart repos={repos} />
-              </div>
-
-              <div style={{ marginTop: '24px' }}>
-                <div className="section-title">Language Usage</div>
-                <LanguageChart repos={repos} />
-              </div>
+              <RepoChart repos={repos} />
+              <LanguageChart repos={repos} />
             </>
           )}
 
           {/* REPOS */}
           {activeTab === 'repos' && (
             <div className="repos-section">
-              <div className="repos-list">
-                <div className="section-title">
-                  Repositories
-                  <span className="section-count">{repos.length}</span>
-                </div>
 
-                {repos.map((repo) => (
+              {/* Left — repo list */}
+              <div className="repos-list">
+                {repos.map(repo => (
                   <RepoCard
                     key={repo.id}
                     repo={repo}
@@ -192,44 +219,118 @@ function Dashboard({ username }) {
                 ))}
               </div>
 
+              {/* Right — detail panel */}
               {selectedRepo && (
                 <div className="repo-detail">
-                  <div className="repo-detail-name">{selectedRepo.name}</div>
-                  <div className="repo-detail-url">
-                    github.com/{username}/{selectedRepo.name}
+
+                  <div className="repo-detail-header">
+                    <h3 className="repo-detail-name">{selectedRepo.name}</h3>
+                    
+                      href={selectedRepo.html_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="repo-detail-link"
+                    
+                      View on GitHub ↗
+                  
                   </div>
 
-                  <p className="repo-detail-desc">{selectedRepo.description}</p>
+                  {selectedRepo.description
+                    ? <p className="repo-detail-desc">{selectedRepo.description}</p>
+                    : <p className="repo-detail-desc repo-detail-empty">No description provided.</p>
+                  }
 
                   <div className="repo-detail-stats">
-                    <StatCard label="Stars" value={selectedRepo.stargazers_count} />
-                    <StatCard label="Forks" value={selectedRepo.forks_count} />
-                    <StatCard label="Issues" value={selectedRepo.open_issues_count} />
-                    <StatCard label="Language" value={selectedRepo.language} />
+                    <div className="repo-detail-stat">
+                      <span className="repo-detail-stat-icon">⭐</span>
+                      <span className="repo-detail-stat-value">{selectedRepo.stargazers_count}</span>
+                      <span className="repo-detail-stat-label">Stars</span>
+                    </div>
+                    <div className="repo-detail-stat">
+                      <span className="repo-detail-stat-icon">🍴</span>
+                      <span className="repo-detail-stat-value">{selectedRepo.forks_count}</span>
+                      <span className="repo-detail-stat-label">Forks</span>
+                    </div>
+                    <div className="repo-detail-stat">
+                      <span className="repo-detail-stat-icon">👁</span>
+                      <span className="repo-detail-stat-value">{selectedRepo.watchers_count}</span>
+                      <span className="repo-detail-stat-label">Watchers</span>
+                    </div>
+                    <div className="repo-detail-stat">
+                      <span className="repo-detail-stat-icon">🔴</span>
+                      <span className="repo-detail-stat-value">{selectedRepo.open_issues_count}</span>
+                      <span className="repo-detail-stat-label">Issues</span>
+                    </div>
                   </div>
 
-                  <a
-                    href={selectedRepo.html_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="repo-detail-link"
-                  >
-                    View on GitHub →
-                  </a>
+                  <div className="repo-detail-meta">
+                    {selectedRepo.language && (
+                      <div className="repo-detail-meta-row">
+                        <span className="repo-detail-meta-label">Language</span>
+                        <span className="repo-detail-meta-value">{selectedRepo.language}</span>
+                      </div>
+                    )}
+                    <div className="repo-detail-meta-row">
+                      <span className="repo-detail-meta-label">Visibility</span>
+                      <span className="repo-detail-meta-value">
+                        {selectedRepo.private ? 'Private' : 'Public'}
+                      </span>
+                    </div>
+                    <div className="repo-detail-meta-row">
+                      <span className="repo-detail-meta-label">Created</span>
+                      <span className="repo-detail-meta-value">
+                        {new Date(selectedRepo.created_at).toLocaleDateString('en-IN', {
+                          year: 'numeric', month: 'short', day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                    <div className="repo-detail-meta-row">
+                      <span className="repo-detail-meta-label">Last updated</span>
+                      <span className="repo-detail-meta-value">
+                        {new Date(selectedRepo.updated_at).toLocaleDateString('en-IN', {
+                          year: 'numeric', month: 'short', day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                    {selectedRepo.license && (
+                      <div className="repo-detail-meta-row">
+                        <span className="repo-detail-meta-label">License</span>
+                        <span className="repo-detail-meta-value">{selectedRepo.license.spdx_id}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedRepo.topics && selectedRepo.topics.length > 0 && (
+                    <div className="repo-detail-topics">
+                      {selectedRepo.topics.map(topic => (
+                        <span key={topic} className="repo-topic-tag">{topic}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedRepo.fork && (
+                    <p className="repo-detail-fork-note">Forked repository</p>
+                  )}
+
                 </div>
               )}
             </div>
           )}
 
-          {/* 🔥 ACTIVITY (UPDATED) */}
+          {/* ACTIVITY */}
           {activeTab === 'activity' && (
-            <div style={{ marginTop: '24px' }}>
-              <div className="section-title">Contribution Activity</div>
-              <ActivityHeatmap />
-            </div>
+            <ActivityHeatmap activityData={activityData} username={username} />
           )}
         </>
       )}
+
+      {/* EMPTY STATE */}
+      {!loading && !error && !userData && (
+        <div className="empty-state">
+          <p>Enter a GitHub username above to get started</p>
+        </div>
+      )}
+
     </div>
   );
 }
