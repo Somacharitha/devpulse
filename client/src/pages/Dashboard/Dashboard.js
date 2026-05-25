@@ -28,7 +28,7 @@ function Dashboard({ username }) {
 
         // USER API
         const userRes = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/user/${username}`
+          `${process.env.REACT_APP_API_URL}/api/github/user/${username}`
         );
 
         if (userRes.status === 404) {
@@ -50,7 +50,7 @@ function Dashboard({ username }) {
 
         // REPOS API
         const reposRes = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/repos/${username}`
+          `${process.env.REACT_APP_API_URL}/api/github/repos/${username}`
         );
 
         const reposData = reposRes.status === 200
@@ -59,7 +59,7 @@ function Dashboard({ username }) {
 
         // EVENTS API
         const eventsRes = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/events/${username}`
+          `${process.env.REACT_APP_API_URL}/api/github/events/${username}`
         );
 
         const eventsData = eventsRes.status === 200

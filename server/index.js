@@ -1,21 +1,24 @@
-const express = require('express');
-const cors = require('cors');
-const githubRoutes = require('./routes/github');
-require('dotenv').config();
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+
+const connectDB = require("./config/db");
+const githubRoutes = require("./routes/github");
 
 const app = express();
 
-// Middleware
+connectDB();
+
 app.use(cors());
 app.use(express.json());
-app.use('/api', githubRoutes);
 
-// Test route
-app.get('/', (req, res) => {
-  res.send('DevPulse API is running 🚀');
+
+app.get("/", (req, res) => {
+  res.send("DevPulse API Running");
 });
+app.use("/api/github", githubRoutes);
 
-// Server start
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
