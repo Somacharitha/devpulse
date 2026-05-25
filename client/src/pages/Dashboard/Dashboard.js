@@ -7,7 +7,7 @@ import ActivityHeatmap from '../../components/Charts/ActivityHeatmap';
 import './Dashboard.css';
 import './../../components/Skeleton/Skeleton.css';
 
-function Dashboard({ username }) {
+function Dashboard({ username, setUsername }) {
   const [userData, setUserData] = useState(null);
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,7 @@ function Dashboard({ username }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState(null);
   const [activityData, setActivityData] = useState({});
+  const [recentSearches, setRecentSearches] = useState([]);
 
   useEffect(() => {
     if (!username) return;
@@ -85,8 +86,24 @@ function Dashboard({ username }) {
     };
 
     fetchData();
+    fetchRecentSearches();
   }, [username]);
+  const fetchRecentSearches = async () => {
+  try {
 
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/github/recent/searches`
+    );
+
+    const data = await response.json();
+
+    setRecentSearches(data);
+
+  } catch (error) {
+
+    console.log("Recent searches error:", error);
+  }
+};
   const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
   const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
 
@@ -103,6 +120,24 @@ function Dashboard({ username }) {
 
   return (
     <div className="dashboard">
+      <div className="recent-searches-box">
+  <h3>Recent Searches</h3>
+  <div className="recent-searches-list"></div>
+
+  {recentSearches.length === 0 ? (
+  <p>No recent searches</p>
+) : (
+  recentSearches.map((search) => (
+    <button
+      key={search._id}
+      className="recent-search-btn"
+      onClick={() => setUsername(search.username)}
+    >
+      {search.username}
+    </button>
+  ))
+)}
+</div>
 
       {/* LOADING — skeleton */}
       {loading && (
@@ -215,7 +250,7 @@ function Dashboard({ username }) {
                     repo={repo}
                     selected={selectedRepo?.id === repo.id}
                     onClick={() => setSelectedRepo(repo)}
-                  />
+                                      />
                 ))}
               </div>
 
@@ -225,14 +260,16 @@ function Dashboard({ username }) {
 
                   <div className="repo-detail-header">
                     <h3 className="repo-detail-name">{selectedRepo.name}</h3>
-                    
+
+                    <a
                       href={selectedRepo.html_url}
                       target="_blank"
                       rel="noreferrer"
                       className="repo-detail-link"
-                    
+                    >
                       View on GitHub ↗
-                  
+                    </a>
+
                   </div>
 
                   {selectedRepo.description
@@ -246,16 +283,19 @@ function Dashboard({ username }) {
                       <span className="repo-detail-stat-value">{selectedRepo.stargazers_count}</span>
                       <span className="repo-detail-stat-label">Stars</span>
                     </div>
+
                     <div className="repo-detail-stat">
                       <span className="repo-detail-stat-icon">🍴</span>
                       <span className="repo-detail-stat-value">{selectedRepo.forks_count}</span>
                       <span className="repo-detail-stat-label">Forks</span>
                     </div>
+
                     <div className="repo-detail-stat">
                       <span className="repo-detail-stat-icon">👁</span>
                       <span className="repo-detail-stat-value">{selectedRepo.watchers_count}</span>
                       <span className="repo-detail-stat-label">Watchers</span>
                     </div>
+
                     <div className="repo-detail-stat">
                       <span className="repo-detail-stat-icon">🔴</span>
                       <span className="repo-detail-stat-value">{selectedRepo.open_issues_count}</span>
@@ -264,62 +304,85 @@ function Dashboard({ username }) {
                   </div>
 
                   <div className="repo-detail-meta">
+
                     {selectedRepo.language && (
                       <div className="repo-detail-meta-row">
                         <span className="repo-detail-meta-label">Language</span>
                         <span className="repo-detail-meta-value">{selectedRepo.language}</span>
                       </div>
                     )}
+
                     <div className="repo-detail-meta-row">
                       <span className="repo-detail-meta-label">Visibility</span>
                       <span className="repo-detail-meta-value">
                         {selectedRepo.private ? 'Private' : 'Public'}
                       </span>
                     </div>
+
                     <div className="repo-detail-meta-row">
                       <span className="repo-detail-meta-label">Created</span>
                       <span className="repo-detail-meta-value">
                         {new Date(selectedRepo.created_at).toLocaleDateString('en-IN', {
-                          year: 'numeric', month: 'short', day: 'numeric'
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
                         })}
                       </span>
                     </div>
+
                     <div className="repo-detail-meta-row">
                       <span className="repo-detail-meta-label">Last updated</span>
                       <span className="repo-detail-meta-value">
                         {new Date(selectedRepo.updated_at).toLocaleDateString('en-IN', {
-                          year: 'numeric', month: 'short', day: 'numeric'
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
                         })}
                       </span>
                     </div>
+
                     {selectedRepo.license && (
                       <div className="repo-detail-meta-row">
                         <span className="repo-detail-meta-label">License</span>
-                        <span className="repo-detail-meta-value">{selectedRepo.license.spdx_id}</span>
+                        <span className="repo-detail-meta-value">
+                          {selectedRepo.license.spdx_id}
+                        </span>
                       </div>
                     )}
+
                   </div>
 
                   {selectedRepo.topics && selectedRepo.topics.length > 0 && (
                     <div className="repo-detail-topics">
                       {selectedRepo.topics.map(topic => (
-                        <span key={topic} className="repo-topic-tag">{topic}</span>
+                        <span
+                          key={topic}
+                          className="repo-topic-tag"
+                        >
+                          {topic}
+                        </span>
                       ))}
                     </div>
                   )}
 
                   {selectedRepo.fork && (
-                    <p className="repo-detail-fork-note">Forked repository</p>
+                    <p className="repo-detail-fork-note">
+                      Forked repository
+                    </p>
                   )}
 
                 </div>
               )}
+
             </div>
           )}
 
           {/* ACTIVITY */}
           {activeTab === 'activity' && (
-            <ActivityHeatmap activityData={activityData} username={username} />
+            <ActivityHeatmap
+              activityData={activityData}
+              username={username}
+            />
           )}
         </>
       )}

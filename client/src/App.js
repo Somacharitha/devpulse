@@ -8,7 +8,10 @@ function App() {
   return (
     <div>
       <Navbar onSearch={setUsername} />
-      <Dashboard username={username} />
+      <Dashboard
+  username={username}
+  setUsername={setUsername}
+/>
     </div>
   );
 }
