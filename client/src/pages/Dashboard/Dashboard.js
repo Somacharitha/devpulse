@@ -16,6 +16,7 @@ function Dashboard({ username, setUsername }) {
   const [error, setError] = useState(null);
   const [activityData, setActivityData] = useState({});
   const [recentSearches, setRecentSearches] = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
   useEffect(() => {
     if (!username) return;
@@ -87,8 +88,13 @@ function Dashboard({ username, setUsername }) {
 
     fetchData();
     fetchRecentSearches();
-  }, [username]);
-  const fetchRecentSearches = async () => {
+fetchFavorites();
+
+}, [username]);
+
+
+
+const fetchRecentSearches = async () => {
   try {
 
     const response = await fetch(
@@ -104,6 +110,26 @@ function Dashboard({ username, setUsername }) {
     console.log("Recent searches error:", error);
   }
 };
+
+
+
+const fetchFavorites = async () => {
+  try {
+
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/github/favorites`
+    );
+
+    const data = await response.json();
+
+    setFavorites(data);
+
+  } catch (error) {
+
+    console.log('Favorites fetch error:', error);
+  }
+};
+    
   const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
   const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
 
@@ -138,6 +164,76 @@ function Dashboard({ username, setUsername }) {
   ))
 )}
 </div>
+<div className="favorites-box">
+
+  <h3>Favorite Developers</h3>
+
+  <div className="favorites-list">
+
+    {favorites.length === 0 ? (
+
+      <p>No favorites yet</p>
+
+    ) : (
+
+      favorites.map((fav) => (
+
+  <div
+    key={fav._id}
+    className="favorite-card"
+  >
+
+    <div
+      className="favorite-info"
+      onClick={() => setUsername(fav.username)}
+    >
+
+      <img
+        src={fav.avatar}
+        alt={fav.username}
+        className="favorite-avatar"
+      />
+
+      <span className="favorite-username">
+        {fav.username}
+      </span>
+
+    </div>
+
+    <button
+      className="remove-favorite-btn"
+      onClick={async () => {
+
+        try {
+
+          await fetch(
+            `${process.env.REACT_APP_API_URL}/api/github/favorites/${fav._id}`,
+            {
+              method: 'DELETE'
+            }
+          );
+
+          fetchFavorites();
+
+        } catch (error) {
+
+          console.log(error);
+        }
+      }}
+    >
+      ✕
+    </button>
+
+  </div>
+
+))
+    )}
+
+  </div>
+
+</div>
+  
+
 
       {/* LOADING — skeleton */}
       {loading && (
@@ -222,7 +318,64 @@ function Dashboard({ username, setUsername }) {
                   <h2>{userData.name || userData.login}</h2>
                   <p>@{userData.login}</p>
                   <p>{userData.bio}</p>
-                  <p>📍 {userData.location}</p>
+                  <div className="profile-location">
+  <span className="location-symbol">⌖</span>
+
+  <span>
+    {userData.location}
+  </span>
+</div>
+                  <div className="favorite-actions">
+
+  <button
+    className="favorite-btn"
+    onClick={async () => {
+      try {
+
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/github/favorites`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              username: userData.login,
+              avatar: userData.avatar_url,
+              profileUrl: userData.html_url
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        alert(data.message || 'Added to favorites');
+
+      } catch (error) {
+
+        console.log(error);
+
+        alert('Failed to add favorite');
+      }
+    }}
+  >
+
+    <span className="favorite-star">
+      ⭐
+    </span>
+
+    <span className="favorite-text">
+      Added to Favorites
+    </span>
+
+  </button>
+
+  <button className="heart-btn">
+    ♡
+  </button>
+
+</div>
+ 
                 </div>
               </div>
 

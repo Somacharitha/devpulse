@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const Search = require('../models/Search');
+const Favorite = require('../models/Favorite');
 
 const router = express.Router();
 
@@ -168,7 +169,82 @@ router.get('/recent/searches', async (req, res) => {
     });
   }
 });
+// ===============================
+// ADD FAVORITE API
+// ===============================
+router.post('/favorites', async (req, res) => {
+  try {
 
+    const { username, avatar, profileUrl } = req.body;
+
+    const existingFavorite = await Favorite.findOne({ username });
+
+    if (existingFavorite) {
+      return res.status(400).json({
+        message: 'Already added to favorites'
+      });
+    }
+
+    const favorite = await Favorite.create({
+      username,
+      avatar,
+      profileUrl
+    });
+
+    res.status(201).json(favorite);
+
+  } catch (error) {
+
+    console.log('FAVORITE ERROR:', error.message);
+
+    res.status(500).json({
+      message: 'Failed to save favorite'
+    });
+  }
+});
+// ===============================
+// GET FAVORITES API
+// ===============================
+router.get('/favorites', async (req, res) => {
+  try {
+
+    const favorites = await Favorite.find()
+      .sort({ addedAt: -1 });
+
+    res.json(favorites);
+
+  } catch (error) {
+
+    console.log('GET FAVORITES ERROR:', error.message);
+
+    res.status(500).json({
+      message: 'Failed to fetch favorites'
+    });
+  }
+});
+// ===============================
+// DELETE FAVORITE API
+// ===============================
+router.delete('/favorites/:id', async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    await Favorite.findByIdAndDelete(id);
+
+    res.json({
+      message: 'Favorite removed'
+    });
+
+  } catch (error) {
+
+    console.log('DELETE FAVORITE ERROR:', error.message);
+
+    res.status(500).json({
+      message: 'Failed to remove favorite'
+    });
+  }
+});
 
 
 module.exports = router;
