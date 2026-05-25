@@ -175,7 +175,12 @@ router.get('/recent/searches', async (req, res) => {
 router.post('/favorites', async (req, res) => {
   try {
 
-    const { username, avatar, profileUrl } = req.body;
+    const {
+  username,
+  avatar,
+  profileUrl,
+  userId
+} = req.body;
 
     const existingFavorite = await Favorite.findOne({ username });
 
@@ -186,10 +191,15 @@ router.post('/favorites', async (req, res) => {
     }
 
     const favorite = await Favorite.create({
-      username,
-      avatar,
-      profileUrl
-    });
+
+  userId,
+
+  username,
+
+  avatar,
+
+  profileUrl
+});
 
     res.status(201).json(favorite);
 
@@ -208,7 +218,12 @@ router.post('/favorites', async (req, res) => {
 router.get('/favorites', async (req, res) => {
   try {
 
-    const favorites = await Favorite.find()
+    const { userId } = req.query;
+
+const favorites = await Favorite.find({
+  userId
+})
+
       .sort({ addedAt: -1 });
 
     res.json(favorites);

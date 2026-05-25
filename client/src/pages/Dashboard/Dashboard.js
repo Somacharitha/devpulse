@@ -117,8 +117,12 @@ const fetchFavorites = async () => {
   try {
 
     const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/github/favorites`
-    );
+
+  `${process.env.REACT_APP_API_URL}/api/github/favorites?userId=${
+    JSON.parse(localStorage.getItem('user'))?.id
+  }`
+
+);
 
     const data = await response.json();
 
@@ -340,10 +344,17 @@ const fetchFavorites = async () => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              username: userData.login,
-              avatar: userData.avatar_url,
-              profileUrl: userData.html_url
-            })
+
+  userId: JSON.parse(
+    localStorage.getItem('user')
+  )?.id,
+
+  username: userData.login,
+
+  avatar: userData.avatar_url,
+
+  profileUrl: userData.html_url
+})
           }
         );
 
