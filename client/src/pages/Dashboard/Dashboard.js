@@ -1,613 +1,1025 @@
-import { useState, useEffect } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef
+} from 'react';
+
 import StatCard from '../../components/StatCard/StatCard';
 import RepoCard from '../../components/RepoCard/RepoCard';
 import RepoChart from '../../components/Charts/RepoChart';
 import LanguageChart from '../../components/Charts/LanguageChart';
 import ActivityHeatmap from '../../components/Charts/ActivityHeatmap';
+
 import './Dashboard.css';
 import './../../components/Skeleton/Skeleton.css';
 
-function Dashboard({ username, setUsername }) {
-  const [userData, setUserData] = useState(null);
-  const [repos, setRepos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [error, setError] = useState(null);
-  const [activityData, setActivityData] = useState({});
-  const [recentSearches, setRecentSearches] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [aiInsights, setAiInsights] = useState('');
-  const [showFullInsights, setShowFullInsights] = useState(false);
+import toast from 'react-hot-toast';
+
+function Dashboard({
+  username,
+  setUsername
+}) {
+
+  const [userData, setUserData] =
+    useState(null);
+
+  const [repos, setRepos] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [selectedRepo, setSelectedRepo] =
+    useState(null);
+
+  const [activeTab, setActiveTab] =
+    useState('overview');
+
+  const [error, setError] =
+    useState(null);
+
+  const [activityData, setActivityData] =
+    useState({});
+
+  const [recentSearches, setRecentSearches] =
+    useState([]);
+
+  const [favorites, setFavorites] =
+    useState([]);
+
+  const [aiInsights, setAiInsights] =
+    useState('');
+
+  const [showFullInsights, setShowFullInsights] =
+    useState(false);
+
+
+
+  /* =========================
+     PARTICLES
+  ========================= */
+
+  const canvasRef = useRef(null);
+
+
 
   useEffect(() => {
+
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+
+
+    const resize = () => {
+
+      canvas.width = window.innerWidth;
+
+      canvas.height =
+        document.body.scrollHeight;
+    };
+
+
+
+    resize();
+
+    window.addEventListener(
+      'resize',
+      resize
+    );
+
+
+
+    const particles = Array.from(
+      { length: 80 },
+      () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2 + 0.5,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35
+      })
+    );
+
+
+
+    const animate = () => {
+
+      ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+
+      particles.forEach((p) => {
+
+        p.x += p.vx;
+
+        p.y += p.vy;
+
+
+
+        if (p.x < 0)
+          p.x = canvas.width;
+
+        if (p.x > canvas.width)
+          p.x = 0;
+
+        if (p.y < 0)
+          p.y = canvas.height;
+
+        if (p.y > canvas.height)
+          p.y = 0;
+
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+          p.x,
+          p.y,
+          p.r,
+          0,
+          Math.PI * 2
+        );
+
+
+
+        ctx.fillStyle =
+          'rgba(0,255,163,0.25)';
+
+        ctx.fill();
+      });
+
+
+
+
+
+      particles.forEach((a, i) => {
+
+        particles
+          .slice(i + 1)
+          .forEach((b) => {
+
+            const dist = Math.hypot(
+              a.x - b.x,
+              a.y - b.y
+            );
+
+
+
+            if (dist < 120) {
+
+              ctx.beginPath();
+
+              ctx.moveTo(a.x, a.y);
+
+              ctx.lineTo(b.x, b.y);
+
+
+
+              ctx.strokeStyle =
+                `rgba(0,255,163,${
+                  0.06 * (
+                    1 - dist / 120
+                  )
+                })`;
+
+
+
+              ctx.lineWidth = 0.5;
+
+              ctx.stroke();
+            }
+          });
+      });
+
+
+
+      requestAnimationFrame(
+        animate
+      );
+    };
+
+
+
+    animate();
+
+
+
+    return () => {
+
+      window.removeEventListener(
+        'resize',
+        resize
+      );
+    };
+
+  }, []);
+
+
+
+
+
+  /* =========================
+     FETCH DATA
+  ========================= */
+
+  useEffect(() => {
+
     if (!username) return;
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setUserData(null);
-        setRepos([]);
 
-        // USER API
+
+    const fetchData = async () => {
+
+      try {
+
+        setLoading(true);
+
+        setError(null);
+
+
+
         const userRes = await fetch(
+
           `${process.env.REACT_APP_API_URL}/api/github/user/${username}`
         );
 
-        if (userRes.status === 404) {
-          setError({ type: 'not_found', message: `"${username}" not found on GitHub` });
+
+
+        if (!userRes.ok) {
+
+          setError({
+            message: 'User not found'
+          });
+
           return;
         }
 
-        if (userRes.status === 403) {
-          setError({ type: 'rate_limit', message: 'GitHub API rate limit hit. Try again in a minute.' });
-          return;
-        }
 
-        if (userRes.status !== 200) {
-          setError({ type: 'server', message: 'Something went wrong. Try again.' });
-          return;
-        }
 
-        const userData = await userRes.json();
+        const user =
+          await userRes.json();
 
-        // REPOS API
+
+
         const reposRes = await fetch(
+
           `${process.env.REACT_APP_API_URL}/api/github/repos/${username}`
         );
 
-        const reposData = reposRes.status === 200
-          ? await reposRes.json()
-          : [];
 
-        // EVENTS API
+
+        const reposData =
+          await reposRes.json();
+
+
+
         const eventsRes = await fetch(
+
           `${process.env.REACT_APP_API_URL}/api/github/events/${username}`
         );
 
-        const eventsData = eventsRes.status === 200
-          ? await eventsRes.json()
-          : {};
 
-        // SAFE SET
-        setUserData(userData);
+
+        const events =
+          await eventsRes.json();
+
+
+
+        setUserData(user);
+
         setRepos(reposData);
-        setActivityData(eventsData);
-        setSelectedRepo(reposData.length > 0 ? reposData[0] : null);
+
+        setActivityData(events);
+
+        setSelectedRepo(
+          reposData[0]
+        );
+
+
+
+        /* RECENT SEARCHES */
+
+        setRecentSearches((prev) => {
+
+          const updated = [
+
+            username,
+
+            ...prev.filter(
+              (item) =>
+                item !== username
+            )
+          ];
+
+
+
+          return updated.slice(0, 5);
+        });
+
+
+
+
+
         const aiRes = await fetch(
 
-  `${process.env.REACT_APP_API_URL}/api/github/ai-insights`,
+          `${process.env.REACT_APP_API_URL}/api/github/ai-insights`,
 
-  {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json'
-    },
-
-    body: JSON.stringify({
-  repos: reposData.slice(0, 10)
-})
-  }
-);
-
-const aiData = await aiRes.json();
-
-setAiInsights(aiData.insights);
-
-      } catch (error) {
-        console.error(error);
-        setError({ type: 'server', message: 'Could not connect to server. Is it running?' });
-        setUserData(null);
-        setRepos([]);
-        setSelectedRepo(null);
-        setActivityData({});
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-    fetchRecentSearches();
-fetchFavorites();
-
-}, [username]);
-
-
-
-const fetchRecentSearches = async () => {
-  try {
-
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/github/recent/searches`
-    );
-
-    const data = await response.json();
-
-    setRecentSearches(data);
-
-  } catch (error) {
-
-    console.log("Recent searches error:", error);
-  }
-};
-
-
-
-const fetchFavorites = async () => {
-  try {
-
-    const response = await fetch(
-
-  `${process.env.REACT_APP_API_URL}/api/github/favorites?userId=${
-    JSON.parse(localStorage.getItem('user'))?.id
-  }`
-
-);
-
-    const data = await response.json();
-
-    setFavorites(data);
-
-  } catch (error) {
-
-    console.log('Favorites fetch error:', error);
-  }
-};
-    
-  const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
-  const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
-
-  const topLanguage = repos
-    .map(r => r.language)
-    .filter(Boolean)
-    .reduce((acc, lang) => {
-      acc[lang] = (acc[lang] || 0) + 1;
-      return acc;
-    }, {});
-
-  const mostUsedLang =
-    Object.entries(topLanguage).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-
-  return (
-    <div className="dashboard">
-      <div className="recent-searches-box">
-  <h3>Recent Searches</h3>
-  <div className="recent-searches-list"></div>
-
-  {recentSearches.length === 0 ? (
-  <p>No recent searches</p>
-) : (
-  recentSearches.map((search) => (
-    <button
-      key={search._id}
-      className="recent-search-btn"
-      onClick={() => setUsername(search.username)}
-    >
-      {search.username}
-    </button>
-  ))
-)}
-</div>
-<div className="favorites-box">
-
-  <h3>Favorite Developers</h3>
-
-  <div className="favorites-list">
-
-    {favorites.length === 0 ? (
-
-      <p>No favorites yet</p>
-
-    ) : (
-
-      favorites.map((fav) => (
-
-  <div
-    key={fav._id}
-    className="favorite-card"
-  >
-
-    <div
-      className="favorite-info"
-      onClick={() => setUsername(fav.username)}
-    >
-
-      <img
-        src={fav.avatar}
-        alt={fav.username}
-        className="favorite-avatar"
-      />
-
-      <span className="favorite-username">
-        {fav.username}
-      </span>
-
-    </div>
-
-    <button
-      className="remove-favorite-btn"
-      onClick={async () => {
-
-        try {
-
-          await fetch(
-            `${process.env.REACT_APP_API_URL}/api/github/favorites/${fav._id}`,
-            {
-              method: 'DELETE'
-            }
-          );
-
-          fetchFavorites();
-
-        } catch (error) {
-
-          console.log(error);
-        }
-      }}
-    >
-      ✕
-    </button>
-
-  </div>
-
-))
-    )}
-
-  </div>
-
-</div>
-  
-
-
-      {/* LOADING — skeleton */}
-      {loading && (
-        <div className="dashboard">
-          <div className="skeleton-profile">
-            <div className="skeleton skeleton-avatar" />
-            <div className="skeleton-profile-lines">
-              <div className="skeleton skeleton-line-lg" />
-              <div className="skeleton skeleton-line-md" />
-              <div className="skeleton skeleton-line-sm" />
-            </div>
-          </div>
-          <div className="stat-cards-grid">
-            <div className="skeleton skeleton-stat-card" />
-            <div className="skeleton skeleton-stat-card" />
-            <div className="skeleton skeleton-stat-card" />
-            <div className="skeleton skeleton-stat-card" />
-          </div>
-          <div style={{ marginTop: '24px' }}>
-            <div className="skeleton skeleton-repo-card" />
-            <div className="skeleton skeleton-repo-card" />
-            <div className="skeleton skeleton-repo-card" />
-          </div>
-        </div>
-      )}
-
-      {/* ERROR STATE */}
-{!loading && error && (
-  <div className="error-card">
-    <div className="error-icon">
-      {error.type === 'not_found' && '🔍'}
-      {error.type === 'rate_limit' && '⏳'}
-      {error.type === 'server' && '⚠️'}
-    </div>
-    <h3 className="error-title">
-      {error.type === 'not_found' && 'User not found'}
-      {error.type === 'rate_limit' && 'Rate limit hit'}
-      {error.type === 'server' && 'Server error'}
-    </h3>
-    <p className="error-message">{error.message}</p>
-  </div>
-)}
-
-{/* EMPTY STATE — no search yet */}
-{!loading && !error && !userData && (
-  <div className="empty-state">
-    <p>Enter a GitHub username above to get started</p>
-  </div>
-)}
-
-      {/* MAIN DATA */}
-      {userData && !loading && (
-        <>
-          {/* Tabs */}
-          <div className="tabs">
-            <button
-              className={activeTab === 'overview' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={activeTab === 'repos' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('repos')}
-            >
-              Repositories
-            </button>
-            <button
-              className={activeTab === 'activity' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('activity')}
-            >
-              Activity
-            </button>
-          </div>
-
-          {/* OVERVIEW */}
-          {activeTab === 'overview' && (
-            <>
-              <div className="profile-card">
-                <img src={userData.avatar_url} alt="avatar" />
-                <div>
-                  <h2>{userData.name || userData.login}</h2>
-                  <p>@{userData.login}</p>
-                  <p>{userData.bio}</p>
-                  <div className="profile-location">
-  <span className="location-symbol">⌖</span>
-
-  <span>
-    {userData.location}
-  </span>
-</div>
-                  <div className="favorite-actions">
-
-  <button
-    className="favorite-btn"
-    onClick={async () => {
-      try {
-
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/github/favorites`,
           {
             method: 'POST',
+
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type':
+                'application/json'
             },
+
             body: JSON.stringify({
-
-  userId: JSON.parse(
-    localStorage.getItem('user')
-  )?.id,
-
-  username: userData.login,
-
-  avatar: userData.avatar_url,
-
-  profileUrl: userData.html_url
-})
+              repos:
+                reposData.slice(0, 10)
+            })
           }
         );
 
-        const data = await response.json();
 
-        alert(data.message || 'Added to favorites');
+
+        const aiData =
+          await aiRes.json();
+
+
+
+        setAiInsights(
+          aiData.insights
+        );
+
+
+
+        fetchFavorites();
 
       } catch (error) {
 
         console.log(error);
 
-        alert('Failed to add favorite');
+        setError({
+          message:
+            'Something went wrong'
+        });
+
+      } finally {
+
+        setLoading(false);
       }
-    }}
-  >
+    };
 
-    <span className="favorite-star">
-      ⭐
-    </span>
 
-    <span className="favorite-text">
-      Added to Favorites
-    </span>
 
-  </button>
+    fetchData();
 
-  <button className="heart-btn">
-    ♡
-  </button>
+  }, [username]);
 
-</div>
- 
-                </div>
+
+
+
+
+  /* =========================
+     FAVORITES
+  ========================= */
+
+  const fetchFavorites = async () => {
+
+    try {
+
+      const response = await fetch(
+
+        `${process.env.REACT_APP_API_URL}/api/github/favorites?userId=${
+          JSON.parse(
+            localStorage.getItem('user')
+          )?.id
+        }`
+      );
+
+
+
+      const data =
+        await response.json();
+
+
+
+      setFavorites(data);
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  };
+
+
+
+
+
+  /* =========================
+     STATS
+  ========================= */
+
+  const totalStars = repos.reduce(
+    (sum, repo) =>
+      sum +
+      repo.stargazers_count,
+    0
+  );
+
+
+
+  const totalForks = repos.reduce(
+    (sum, repo) =>
+      sum +
+      repo.forks_count,
+    0
+  );
+
+
+
+  const languageCount = {};
+
+
+
+  repos.forEach((repo) => {
+
+    if (repo.language) {
+
+      languageCount[
+        repo.language
+      ] =
+
+        (languageCount[
+          repo.language
+        ] || 0) + 1;
+    }
+  });
+
+
+
+  const mostUsedLang =
+
+    Object.keys(languageCount)[0]
+      || 'N/A';
+
+
+
+
+
+  return (
+
+    <div className="dashboard">
+
+
+
+      {/* PARTICLES */}
+
+      <canvas
+        ref={canvasRef}
+        className="dashboard-particles"
+      />
+
+
+
+      {/* HERO SECTION */}
+
+      {!userData && !loading && (
+
+        <div className="dashboard-hero">
+
+          <div className="hero-glow"></div>
+
+
+
+          <h1 className="hero-title">
+
+            Analyze GitHub<br />
+
+            <span className="hero-accent">
+
+              Like Never Before.
+
+            </span>
+
+          </h1>
+
+
+
+          <p className="hero-sub">
+
+            Explore developer profiles,
+            repositories, AI insights,
+            coding activity and tech stack
+            with futuristic analytics.
+
+          </p>
+
+        </div>
+      )}
+
+
+
+      {/* LOADING */}
+
+      {loading && (
+
+        <div className="dashboard-loading">
+
+          <div className="loading-spinner"></div>
+
+        </div>
+      )}
+
+
+
+      {/* ERROR */}
+
+      {error && (
+
+        <div className="dashboard-error">
+
+          {error.message}
+
+        </div>
+      )}
+
+
+
+      {/* MAIN CONTENT */}
+
+      {!loading && !error && userData && (
+
+        <>
+
+          {/* PROFILE */}
+
+          <div className="profile-card">
+
+            <img
+              src={userData.avatar_url}
+              alt={userData.login}
+              className="profile-avatar"
+            />
+
+
+
+            <div className="profile-info">
+
+              <h2 className="profile-name">
+
+                {userData.name ||
+                  userData.login}
+
+              </h2>
+
+
+
+              <p className="profile-username">
+
+                @{userData.login}
+
+              </p>
+
+
+
+              <p className="profile-bio">
+
+                {userData.bio}
+
+              </p>
+
+
+
+              <button
+
+                className="repo-detail-link"
+
+                onClick={async () => {
+
+                  try {
+
+                    const response =
+                      await fetch(
+
+                        `${process.env.REACT_APP_API_URL}/api/github/favorites`,
+
+                        {
+
+                          method: 'POST',
+
+                          headers: {
+                            'Content-Type':
+                              'application/json'
+                          },
+
+                          body: JSON.stringify({
+
+                            userId: JSON.parse(
+                              localStorage.getItem('user')
+                            )?.id,
+
+                            username:
+                              userData.login,
+
+                            avatar:
+                              userData.avatar_url,
+
+                            profileUrl:
+                              userData.html_url
+                          })
+                        }
+                      );
+
+
+
+                    const data =
+                      await response.json();
+
+
+
+                    toast.success(
+
+                      data.message ||
+                      'Added to favorites'
+                    );
+
+
+
+                    fetchFavorites();
+
+                  } catch (error) {
+
+                    console.log(error);
+
+                    toast.error(
+                      'Failed'
+                    );
+                  }
+                }}
+              >
+
+                ⭐ Add to Favorites
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+
+
+
+          {/* RECENT SEARCHES */}
+
+          {recentSearches.length > 0 && (
+
+            <div className="recent-searches-box">
+
+              <h2>
+                Recent Searches
+              </h2>
+
+
+
+              <div className="recent-searches-list">
+
+                {recentSearches.map((item) => (
+
+                  <button
+
+                    key={item}
+
+                    className="recent-search-btn"
+
+                    onClick={() =>
+                      setUsername(item)
+                    }
+                  >
+
+                    {item}
+
+                  </button>
+                ))}
+
               </div>
 
-              <div className="stat-cards-grid">
-                <StatCard label="Stars" value={totalStars} />
-                <StatCard label="Forks" value={totalForks} />
-                <StatCard label="Repos" value={userData.public_repos} />
-                <StatCard label="Top Language" value={mostUsedLang} />
-              </div>
-
-              <RepoChart repos={repos} />
-              <LanguageChart repos={repos} />
-              <div
-  className="ai-insights-card"
-  onClick={() =>
-    setShowFullInsights(!showFullInsights)
-  }
->
-
-  <h2>
-    🤖 AI Developer Insights
-  </h2>
-
-  <p>
-
-  {showFullInsights
-  ? aiInsights
-  : (aiInsights || '').slice(0, 180) + '...'
-}
-
-</p>
-
-<span className="ai-expand-text">
-
-  {showFullInsights
-    ? 'Show Less ↑'
-    : 'Read Full Insights →'
-  }
-
-</span>
-
-</div>
-            </>
+            </div>
           )}
 
-          {/* REPOS */}
-          {activeTab === 'repos' && (
-            <div className="repos-section">
 
-              {/* Left — repo list */}
-              <div className="repos-list">
-                {repos.map(repo => (
-                  <RepoCard
-                    key={repo.id}
-                    repo={repo}
-                    selected={selectedRepo?.id === repo.id}
-                    onClick={() => setSelectedRepo(repo)}
-                                      />
+
+
+
+          {/* STATS */}
+
+          <div className="stat-cards-grid">
+
+            <StatCard
+              title="Repositories"
+              value={repos.length}
+            />
+
+
+
+            <StatCard
+              title="Stars"
+              value={totalStars}
+            />
+
+
+
+            <StatCard
+              title="Forks"
+              value={totalForks}
+            />
+
+
+
+            <StatCard
+              title="Top Language"
+              value={mostUsedLang}
+            />
+
+          </div>
+
+
+
+
+
+          {/* FAVORITES */}
+
+          {favorites.length > 0 && (
+
+            <div className="favorites-box">
+
+              <h2>
+                Favorites
+              </h2>
+
+
+
+              <div className="favorites-list">
+
+                {favorites.map((fav) => (
+
+                  <div
+                    key={fav._id}
+                    className="favorite-card"
+                    onClick={() =>
+                      setUsername(
+                        fav.username
+                      )
+                    }
+                  >
+
+                    <img
+                      src={fav.avatar}
+                      alt={fav.username}
+                      className="profile-avatar"
+                    />
+
+
+
+                    <span>
+
+                      {fav.username}
+
+                    </span>
+
+                  </div>
                 ))}
+
               </div>
 
-              {/* Right — detail panel */}
-              {selectedRepo && (
+            </div>
+          )}
+
+
+
+
+
+          {/* TABS */}
+
+          <div className="tabs">
+
+            <button
+
+              className={`tab ${
+                activeTab === 'overview'
+                  ? 'active'
+                  : ''
+              }`}
+
+              onClick={() =>
+                setActiveTab(
+                  'overview'
+                )
+              }
+            >
+
+              Overview
+
+            </button>
+
+
+
+            <button
+
+              className={`tab ${
+                activeTab === 'activity'
+                  ? 'active'
+                  : ''
+              }`}
+
+              onClick={() =>
+                setActiveTab(
+                  'activity'
+                )
+              }
+            >
+
+              Activity
+
+            </button>
+
+          </div>
+
+
+
+
+
+          {/* OVERVIEW */}
+
+          {activeTab === 'overview' && (
+
+            <>
+
+              <RepoChart
+                repos={repos}
+              />
+
+
+
+              <LanguageChart
+                repos={repos}
+              />
+
+
+
+              <div className="repos-section">
+
+                <div className="repos-list">
+
+                  {repos.map((repo) => (
+
+                    <RepoCard
+                      key={repo.id}
+                      repo={repo}
+                      selected={
+                        selectedRepo?.id ===
+                        repo.id
+                      }
+                      onClick={() =>
+                        setSelectedRepo(repo)
+                      }
+                    />
+                  ))}
+
+                </div>
+
+
+
+
+
                 <div className="repo-detail">
 
-                  <div className="repo-detail-header">
-                    <h3 className="repo-detail-name">{selectedRepo.name}</h3>
+                  {selectedRepo && (
 
-                    <a
-                      href={selectedRepo.html_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="repo-detail-link"
-                    >
-                      View on GitHub ↗
-                    </a>
+                    <>
 
-                  </div>
+                      <div className="repo-detail-header">
 
-                  {selectedRepo.description
-                    ? <p className="repo-detail-desc">{selectedRepo.description}</p>
-                    : <p className="repo-detail-desc repo-detail-empty">No description provided.</p>
-                  }
+                        <h2 className="repo-detail-name">
 
-                  <div className="repo-detail-stats">
-                    <div className="repo-detail-stat">
-                      <span className="repo-detail-stat-icon">⭐</span>
-                      <span className="repo-detail-stat-value">{selectedRepo.stargazers_count}</span>
-                      <span className="repo-detail-stat-label">Stars</span>
-                    </div>
+                          {selectedRepo.name}
 
-                    <div className="repo-detail-stat">
-                      <span className="repo-detail-stat-icon">🍴</span>
-                      <span className="repo-detail-stat-value">{selectedRepo.forks_count}</span>
-                      <span className="repo-detail-stat-label">Forks</span>
-                    </div>
+                        </h2>
 
-                    <div className="repo-detail-stat">
-                      <span className="repo-detail-stat-icon">👁</span>
-                      <span className="repo-detail-stat-value">{selectedRepo.watchers_count}</span>
-                      <span className="repo-detail-stat-label">Watchers</span>
-                    </div>
 
-                    <div className="repo-detail-stat">
-                      <span className="repo-detail-stat-icon">🔴</span>
-                      <span className="repo-detail-stat-value">{selectedRepo.open_issues_count}</span>
-                      <span className="repo-detail-stat-label">Issues</span>
-                    </div>
-                  </div>
 
-                  <div className="repo-detail-meta">
-
-                    {selectedRepo.language && (
-                      <div className="repo-detail-meta-row">
-                        <span className="repo-detail-meta-label">Language</span>
-                        <span className="repo-detail-meta-value">{selectedRepo.language}</span>
-                      </div>
-                    )}
-
-                    <div className="repo-detail-meta-row">
-                      <span className="repo-detail-meta-label">Visibility</span>
-                      <span className="repo-detail-meta-value">
-                        {selectedRepo.private ? 'Private' : 'Public'}
-                      </span>
-                    </div>
-
-                    <div className="repo-detail-meta-row">
-                      <span className="repo-detail-meta-label">Created</span>
-                      <span className="repo-detail-meta-value">
-                        {new Date(selectedRepo.created_at).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="repo-detail-meta-row">
-                      <span className="repo-detail-meta-label">Last updated</span>
-                      <span className="repo-detail-meta-value">
-                        {new Date(selectedRepo.updated_at).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-
-                    {selectedRepo.license && (
-                      <div className="repo-detail-meta-row">
-                        <span className="repo-detail-meta-label">License</span>
-                        <span className="repo-detail-meta-value">
-                          {selectedRepo.license.spdx_id}
-                        </span>
-                      </div>
-                    )}
-
-                  </div>
-
-                  {selectedRepo.topics && selectedRepo.topics.length > 0 && (
-                    <div className="repo-detail-topics">
-                      {selectedRepo.topics.map(topic => (
-                        <span
-                          key={topic}
-                          className="repo-topic-tag"
+                        <a
+                          href={
+                            selectedRepo.html_url
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          className="repo-detail-link"
                         >
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
+
+                          Open Repo
+
+                        </a>
+
+                      </div>
+
+
+
+                      <p>
+
+                        {selectedRepo.description}
+
+                      </p>
+
+                    </>
                   )}
 
-                  {selectedRepo.fork && (
-                    <p className="repo-detail-fork-note">
-                      Forked repository
-                    </p>
+                </div>
+
+              </div>
+
+
+
+
+
+              {/* AI INSIGHTS */}
+
+              {aiInsights && (
+
+                <div className="ai-insights-card">
+
+                  <h2>
+                    AI Developer Insights
+                  </h2>
+
+
+
+                  <p>
+
+                    {showFullInsights
+                      ? aiInsights
+                      : aiInsights.slice(
+                          0,
+                          300
+                        )
+                    }
+
+                  </p>
+
+
+
+                  {aiInsights.length >
+                    300 && (
+
+                    <button
+
+                      className="repo-detail-link"
+
+                      onClick={() =>
+                        setShowFullInsights(
+                          !showFullInsights
+                        )
+                      }
+                    >
+
+                      {showFullInsights
+                        ? 'Show Less'
+                        : 'Read Full Insights'
+                      }
+
+                    </button>
                   )}
 
                 </div>
               )}
 
-            </div>
+            </>
           )}
+
+
+
+
 
           {/* ACTIVITY */}
+
           {activeTab === 'activity' && (
+
             <ActivityHeatmap
-              activityData={activityData}
-              username={username}
+              activityData={
+                activityData
+              }
             />
           )}
-        </>
-      )}
 
-      {/* EMPTY STATE */}
-      {!loading && !error && !userData && (
-        <div className="empty-state">
-          <p>Enter a GitHub username above to get started</p>
-        </div>
+        </>
       )}
 
     </div>

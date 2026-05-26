@@ -1,3 +1,4 @@
+
 import './ActivityHeatmap.css';
 
 const LEVELS = [

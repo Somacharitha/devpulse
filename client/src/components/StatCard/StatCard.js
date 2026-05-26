@@ -1,12 +1,28 @@
 import './StatCard.css';
 
-function StatCard({ label, value, sub, accent }) {
+function StatCard({
+  title,
+  value
+}) {
+
   return (
-    <div className="stat-card" style={{ '--accent-color': accent || '#00FFA3' }}>
-      <div className="stat-card-bar" />
-      <div className="stat-value">{value}</div>
-      <div className="stat-label">{label}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
+
+    <div className="stat-card">
+
+      <h2 className="stat-value">
+
+        {value}
+
+      </h2>
+
+
+
+      <p className="stat-title">
+
+        {title}
+
+      </p>
+
     </div>
   );
 }

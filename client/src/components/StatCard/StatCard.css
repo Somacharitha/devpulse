@@ -1,46 +1,57 @@
 .stat-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px 24px;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
+
+  background:
+    rgba(17,24,39,0.7);
+
+  border:
+    1px solid rgba(0,255,163,0.25);
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  backdrop-filter: blur(12px);
+
+  transition: 0.3s ease;
+
+  box-shadow:
+    0 0 18px rgba(0,255,163,0.06);
 }
+
+
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-color);
+
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 0 26px rgba(0,255,163,0.18);
 }
 
-.stat-card-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-  background: var(--accent-color);
-  border-radius: 2px 0 0 2px;
-}
+
 
 .stat-value {
-  font-family: 'Space Mono', monospace;
-  font-size: 28px;
+
+  color: #00FFA3;
+
+  font-size: 34px;
+
   font-weight: 700;
-  color: var(--accent-color);
-  letter-spacing: -1px;
+
+  margin-bottom: 10px;
+
+  font-family:
+    'Space Mono',
+    monospace;
 }
 
-.stat-label {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
-  margin-top: 4px;
-}
 
-.stat-sub {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 2px;
-  font-family: 'Space Mono', monospace;
+
+.stat-title {
+
+  color: #d1d5db;
+
+  font-size: 14px;
+
+  letter-spacing: 0.5px;
 }
