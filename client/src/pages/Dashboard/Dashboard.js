@@ -17,6 +17,8 @@ function Dashboard({ username, setUsername }) {
   const [activityData, setActivityData] = useState({});
   const [recentSearches, setRecentSearches] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [aiInsights, setAiInsights] = useState('');
+  const [showFullInsights, setShowFullInsights] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -73,6 +75,26 @@ function Dashboard({ username, setUsername }) {
         setRepos(reposData);
         setActivityData(eventsData);
         setSelectedRepo(reposData.length > 0 ? reposData[0] : null);
+        const aiRes = await fetch(
+
+  `${process.env.REACT_APP_API_URL}/api/github/ai-insights`,
+
+  {
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+  repos: reposData.slice(0, 10)
+})
+  }
+);
+
+const aiData = await aiRes.json();
+
+setAiInsights(aiData.insights);
 
       } catch (error) {
         console.error(error);
@@ -399,6 +421,36 @@ const fetchFavorites = async () => {
 
               <RepoChart repos={repos} />
               <LanguageChart repos={repos} />
+              <div
+  className="ai-insights-card"
+  onClick={() =>
+    setShowFullInsights(!showFullInsights)
+  }
+>
+
+  <h2>
+    🤖 AI Developer Insights
+  </h2>
+
+  <p>
+
+  {showFullInsights
+  ? aiInsights
+  : (aiInsights || '').slice(0, 180) + '...'
+}
+
+</p>
+
+<span className="ai-expand-text">
+
+  {showFullInsights
+    ? 'Show Less ↑'
+    : 'Read Full Insights →'
+  }
+
+</span>
+
+</div>
             </>
           )}
 
