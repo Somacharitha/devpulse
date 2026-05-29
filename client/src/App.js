@@ -11,26 +11,18 @@ function App() {
 
   const token = localStorage.getItem('token');
 
-
-
   // NOT LOGGED IN
   if (!token) {
     return <Auth />;
   }
 
-
-
   // LOGGED IN
   return (
-    <div>
-
-      <Navbar onSearch={setUsername} />
-
-      <Dashboard
-        username={username}
-        setUsername={setUsername}
-      />
-
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Navbar onSearch={setUsername} showSearch={!!username} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Dashboard username={username} setUsername={setUsername} />
+      </div>
     </div>
   );
 }

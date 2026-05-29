@@ -3,7 +3,7 @@ import { Activity, Search, X } from 'lucide-react';
 
 import './Navbar.css';
 
-function Navbar({ onSearch }) {
+function Navbar({ onSearch, showSearch = false }) {
 
   const user = JSON.parse(
     localStorage.getItem('user')
@@ -12,22 +12,15 @@ function Navbar({ onSearch }) {
   const [input, setInput] = useState('');
   const [focused, setFocused] = useState(false);
 
-
-
   const handleSubmit = () => {
-
     if (input.trim()) {
       onSearch(input.trim());
     }
   };
 
-
-
   const handleClear = () => {
     setInput('');
   };
-
-
 
   return (
 
@@ -46,51 +39,47 @@ function Navbar({ onSearch }) {
 
       </div>
 
+      {/* SEARCH - only shows on dashboard */}
+      {showSearch && (
+        <div
+          className={`navbar-search ${focused ? 'focused' : ''}`}
+        >
 
+          <span className="search-prefix">
+            github.com/
+          </span>
 
-      {/* SEARCH */}
-      <div
-        className={`navbar-search ${focused ? 'focused' : ''}`}
-      >
+          <input
+            type="text"
+            placeholder="username"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && handleSubmit()
+            }
+          />
 
-        <span className="search-prefix">
-          github.com/
-        </span>
-
-        <input
-          type="text"
-          placeholder="username"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) =>
-            e.key === 'Enter' && handleSubmit()
-          }
-        />
-
-        {input && (
+          {input && (
+            <button
+              className="clear-btn"
+              onClick={handleClear}
+            >
+              <X size={14} />
+            </button>
+          )}
 
           <button
-            className="clear-btn"
-            onClick={handleClear}
+            className="search-btn"
+            onClick={handleSubmit}
           >
-            <X size={14} />
+            <Search size={14} />
+            ANALYZE
           </button>
 
-        )}
-
-        <button
-          className="search-btn"
-          onClick={handleSubmit}
-        >
-          <Search size={14} />
-          ANALYZE
-        </button>
-
-      </div>
-
-
+        </div>
+      )}
 
       {/* RIGHT SECTION */}
       <div className="navbar-right">
@@ -107,11 +96,8 @@ function Navbar({ onSearch }) {
         <button
           className="logout-btn"
           onClick={() => {
-
             localStorage.removeItem('token');
-
             localStorage.removeItem('user');
-
             window.location.reload();
           }}
         >

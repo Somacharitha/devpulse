@@ -3,6 +3,12 @@ const axios = require('axios');
 
 const Search = require('../models/Search');
 const Favorite = require('../models/Favorite');
+const NodeCache = require('node-cache');
+
+const cache = new NodeCache({
+  stdTTL: 300,
+  checkperiod: 320
+});
 
 const OpenAI = require('openai');
 
@@ -36,13 +42,20 @@ router.get('/user/:username', async (req, res) => {
 
     const { username } = req.params;
 
+    const cacheKey = `user_${username}`;
 
+    const cachedUser = cache.get(cacheKey);
+
+    if (cachedUser) {
+
+      console.log('CACHE HIT USER');
+
+      return res.json(cachedUser);
+    }
 
     await Search.create({
       username
     });
-
-
 
     const response = await axios.get(
       `https://api.github.com/users/${username}`,
@@ -51,7 +64,7 @@ router.get('/user/:username', async (req, res) => {
       }
     );
 
-
+    cache.set(cacheKey, response.data);
 
     res.json(response.data);
 
@@ -64,14 +77,10 @@ router.get('/user/:username', async (req, res) => {
       error.response?.data?.message
       || 'GitHub API failed';
 
-
-
     console.log(
       `USER ERROR [${status}]:`,
       message
     );
-
-
 
     res.status(status).json({
       message
@@ -90,7 +99,16 @@ router.get('/repos/:username', async (req, res) => {
 
     const { username } = req.params;
 
+    const cacheKey = `repos_${username}`;
 
+    const cachedRepos = cache.get(cacheKey);
+
+    if (cachedRepos) {
+
+      console.log('CACHE HIT REPOS');
+
+      return res.json(cachedRepos);
+    }
 
     const response = await axios.get(
       `https://api.github.com/users/${username}/repos?sort=updated&per_page=30`,
@@ -99,7 +117,7 @@ router.get('/repos/:username', async (req, res) => {
       }
     );
 
-
+    cache.set(cacheKey, response.data);
 
     res.json(response.data);
 
@@ -112,14 +130,10 @@ router.get('/repos/:username', async (req, res) => {
       error.response?.data?.message
       || 'GitHub API failed';
 
-
-
     console.log(
       `REPOS ERROR [${status}]:`,
       message
     );
-
-
 
     res.status(status).json({
       message
@@ -138,8 +152,6 @@ router.get('/events/:username', async (req, res) => {
 
     const { username } = req.params;
 
-
-
     const response = await axios.get(
       `https://api.github.com/users/${username}/events/public?per_page=100`,
       {
@@ -147,24 +159,16 @@ router.get('/events/:username', async (req, res) => {
       }
     );
 
-
-
     const activityMap = {};
-
-
 
     response.data.forEach((event) => {
 
       const date =
         event.created_at.split('T')[0];
 
-
-
       if (!activityMap[date]) {
         activityMap[date] = 0;
       }
-
-
 
       switch (event.type) {
 
@@ -175,15 +179,11 @@ router.get('/events/:username', async (req, res) => {
 
           break;
 
-
-
         case 'PullRequestEvent':
 
           activityMap[date] += 2;
 
           break;
-
-
 
         case 'IssuesEvent':
         case 'IssueCommentEvent':
@@ -192,23 +192,17 @@ router.get('/events/:username', async (req, res) => {
 
           break;
 
-
-
         case 'CreateEvent':
 
           activityMap[date] += 1;
 
           break;
 
-
-
         default:
 
           activityMap[date] += 1;
       }
     });
-
-
 
     res.json(activityMap);
 
@@ -221,20 +215,17 @@ router.get('/events/:username', async (req, res) => {
       error.response?.data?.message
       || 'GitHub API failed';
 
-
-
     console.log(
       `EVENTS ERROR [${status}]:`,
       message
     );
-
-
 
     res.status(status).json({
       message
     });
   }
 });
+
 
 
 

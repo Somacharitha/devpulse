@@ -1,12 +1,12 @@
-
+import { useEffect, useState } from 'react';
 import './ActivityHeatmap.css';
 
 const LEVELS = [
-  { min: 0, max: 0,  className: 'level-0' },
-  { min: 1, max: 3,  className: 'level-1' },
-  { min: 4, max: 7,  className: 'level-2' },
-  { min: 8, max: 14, className: 'level-3' },
-  { min: 15, max: Infinity, className: 'level-4' },
+  { min: 0,  max: 0,        className: 'level-0' },
+  { min: 1,  max: 3,        className: 'level-1' },
+  { min: 4,  max: 7,        className: 'level-2' },
+  { min: 8,  max: 14,       className: 'level-3' },
+  { min: 15, max: Infinity,  className: 'level-4' },
 ];
 
 function getLevel(count) {
@@ -28,10 +28,67 @@ function getLast90Days() {
   return days;
 }
 
-function ActivityHeatmap({ activityData = {}, username }) {
+function ActivityHeatmap({ username }) {
+
+  const [activityData, setActivityData] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+
+    if (!username) return;
+
+    const fetchActivity = async () => {
+
+      setLoading(true);
+
+      try {
+
+        // GitHub gives max 300 events across 3 pages
+        const pages = [1, 2, 3];
+        const counts = {};
+
+        await Promise.all(
+          pages.map(async (page) => {
+            const res = await fetch(
+              `https://api.github.com/users/${username}/events/public?per_page=100&page=${page}`
+            );
+            const events = await res.json();
+
+            if (!Array.isArray(events)) return;
+
+            events.forEach(event => {
+              const day = event.created_at?.split('T')[0];
+              if (day) {
+                counts[day] = (counts[day] || 0) + 1;
+              }
+            });
+          })
+        );
+
+        setActivityData(counts);
+
+      } catch (err) {
+        console.error('Failed to fetch activity:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivity();
+
+  }, [username]);
+
   const days = getLast90Days();
   const totalEvents = Object.values(activityData).reduce((s, v) => s + v, 0);
   const activeDays = Object.values(activityData).filter(v => v > 0).length;
+
+  if (loading) {
+    return (
+      <div className="heatmap-wrapper">
+        <p className="heatmap-empty">Loading activity...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="heatmap-wrapper">

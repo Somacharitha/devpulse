@@ -1,1029 +1,674 @@
-import {
-  useState,
-  useEffect,
-  useRef
-} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
+
+import './Dashboard.css';
 
 import StatCard from '../../components/StatCard/StatCard';
 import RepoCard from '../../components/RepoCard/RepoCard';
-import RepoChart from '../../components/Charts/RepoChart';
-import LanguageChart from '../../components/Charts/LanguageChart';
 import ActivityHeatmap from '../../components/Charts/ActivityHeatmap';
 
-import './Dashboard.css';
-import './../../components/Skeleton/Skeleton.css';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from 'recharts';
 
-import toast from 'react-hot-toast';
+const COLORS = [
+  '#00FFA3',
+  '#7C3AED',
+  '#F59E0B',
+  '#EF4444',
+  '#3B82F6',
+  '#EC4899'
+];
 
-function Dashboard({
-  username,
-  setUsername
-}) {
+const Dashboard = () => {
 
-  const [userData, setUserData] =
-    useState(null);
+  const [username, setUsername] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+const [showSuggestions, setShowSuggestions] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [repos, setRepos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const [repos, setRepos] =
-    useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [expandedAI, setExpandedAI] = useState(false);
+  const [aiInsights, setAiInsights] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const [selectedRepo, setSelectedRepo] =
-    useState(null);
-
-  const [activeTab, setActiveTab] =
-    useState('overview');
-
-  const [error, setError] =
-    useState(null);
-
-  const [activityData, setActivityData] =
-    useState({});
-
-  const [recentSearches, setRecentSearches] =
-    useState([]);
-
-  const [favorites, setFavorites] =
-    useState([]);
-
-  const [aiInsights, setAiInsights] =
-    useState('');
-
-  const [showFullInsights, setShowFullInsights] =
-    useState(false);
-
-
-
-  /* =========================
-     PARTICLES
-  ========================= */
+  const [popup, setPopup] = useState({ show: false, message: '', type: '' });
 
   const canvasRef = useRef(null);
 
-
+  /* PARTICLE ANIMATION */
 
   useEffect(() => {
 
     const canvas = canvasRef.current;
-
-    if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
-
-
+    let animId;
 
     const resize = () => {
-
-      canvas.width = window.innerWidth;
-
-      canvas.height =
-        document.body.scrollHeight;
+      canvas.width  = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
     };
-
-
-
     resize();
+    window.addEventListener('resize', resize);
 
-    window.addEventListener(
-      'resize',
-      resize
-    );
+    const particles = Array.from({ length: 55 }, () => ({
+      x:  Math.random() * canvas.width,
+      y:  Math.random() * canvas.height,
+      r:  Math.random() * 1.5 + 0.3,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      a:  Math.random(),
+    }));
 
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-
-    const particles = Array.from(
-      { length: 80 },
-      () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 2 + 0.5,
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35
-      })
-    );
-
-
-
-    const animate = () => {
-
-      ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-
-
-
-      particles.forEach((p) => {
-
+      particles.forEach(p => {
         p.x += p.vx;
-
         p.y += p.vy;
-
-
-
-        if (p.x < 0)
-          p.x = canvas.width;
-
-        if (p.x > canvas.width)
-          p.x = 0;
-
-        if (p.y < 0)
-          p.y = canvas.height;
-
-        if (p.y > canvas.height)
-          p.y = 0;
-
-
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width)  p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
 
         ctx.beginPath();
-
-        ctx.arc(
-          p.x,
-          p.y,
-          p.r,
-          0,
-          Math.PI * 2
-        );
-
-
-
-        ctx.fillStyle =
-          'rgba(0,255,163,0.25)';
-
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,232,122,${p.a * 0.35})`;
         ctx.fill();
       });
 
-
-
-
-
       particles.forEach((a, i) => {
-
-        particles
-          .slice(i + 1)
-          .forEach((b) => {
-
-            const dist = Math.hypot(
-              a.x - b.x,
-              a.y - b.y
-            );
-
-
-
-            if (dist < 120) {
-
-              ctx.beginPath();
-
-              ctx.moveTo(a.x, a.y);
-
-              ctx.lineTo(b.x, b.y);
-
-
-
-              ctx.strokeStyle =
-                `rgba(0,255,163,${
-                  0.06 * (
-                    1 - dist / 120
-                  )
-                })`;
-
-
-
-              ctx.lineWidth = 0.5;
-
-              ctx.stroke();
-            }
-          });
+        particles.slice(i + 1).forEach(b => {
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < 90) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(0,232,122,${0.06 * (1 - d / 90)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
       });
 
-
-
-      requestAnimationFrame(
-        animate
-      );
+      animId = requestAnimationFrame(draw);
     };
-
-
-
-    animate();
-
-
+    draw();
 
     return () => {
-
-      window.removeEventListener(
-        'resize',
-        resize
-      );
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
     };
 
   }, []);
 
-
-
-
-
-  /* =========================
-     FETCH DATA
-  ========================= */
+  /* LOAD STORAGE */
 
   useEffect(() => {
 
-    if (!username) return;
+    const savedFavs =
+      JSON.parse(localStorage.getItem('favorites')) || [];
 
+    const savedRecent =
+      JSON.parse(localStorage.getItem('recentSearches')) || [];
 
+    setFavorites(savedFavs);
+    setRecentSearches(savedRecent);
 
-    const fetchData = async () => {
+  }, []);
 
-      try {
+  /* SHOW POPUP HELPER */
 
-        setLoading(true);
+  const showPopup = (message, type = 'success') => {
+    setPopup({ show: true, message, type });
+    setTimeout(() => {
+      setPopup({ show: false, message: '', type: '' });
+    }, 3000);
+  };
 
-        setError(null);
+  /* FETCH AI INSIGHTS */
+  const fetchAIInsights = async (user, repoList, topLang, stars) => {
 
+    setAiLoading(true);
+    setAiInsights('');
 
+    await new Promise(res => setTimeout(res, 1200));
 
-        const userRes = await fetch(
+    const forks = repoList.reduce((s, r) => s + r.forks_count, 0);
+    const avgStars = repoList.length > 0 ? (stars / repoList.length).toFixed(1) : 0;
+    const topRepo = repoList[0];
 
-          `${process.env.REACT_APP_API_URL}/api/github/user/${username}`
-        );
+    const insights = `1. ${user.login} has ${user.public_repos} public repositories with a strong focus on ${topLang}, showing consistent specialization in this tech stack.
 
+2. Top repository "${topRepo?.name || 'N/A'}" has earned ${topRepo?.stargazers_count || 0} stars, indicating strong community recognition and real-world usefulness.
 
+3. With ${stars} total stars and ${forks} forks across all repos, this developer has an average of ${avgStars} stars per repo — a solid indicator of code quality.
 
-        if (!userRes.ok) {
+4. ${user.followers} followers on GitHub places this developer in a visible position within the open-source community, suggesting consistent contribution and engagement.
 
-          setError({
-            message: 'User not found'
-          });
+5. The breadth of ${user.public_repos} repositories combined with a ${topLang} focus suggests a developer who ships frequently — a key trait valued by top tech companies.`;
 
-          return;
-        }
+    setAiInsights(insights);
+    setAiLoading(false);
+  };
+  /* FETCH SUGGESTIONS */
+  const fetchSuggestions = async (value) => {
 
+  if (value.length < 2) {
+    setSuggestions([]);
+    return;
+  }
 
+  try {
 
-        const user =
-          await userRes.json();
+    const response = await axios.get(
+      `https://api.github.com/search/users?q=${value}&per_page=5`
+    );
 
+    setSuggestions(response.data.items);
 
+  } catch (error) {
 
-        const reposRes = await fetch(
+    console.log('Suggestion Error');
+  }
+};
+  
 
-          `${process.env.REACT_APP_API_URL}/api/github/repos/${username}`
-        );
+  
 
+  /* FETCH USER */
 
+  const fetchGitHubData = async () => {
 
-        const reposData =
-          await reposRes.json();
-
-
-
-        const eventsRes = await fetch(
-
-          `${process.env.REACT_APP_API_URL}/api/github/events/${username}`
-        );
-
-
-
-        const events =
-          await eventsRes.json();
-
-
-
-        setUserData(user);
-
-        setRepos(reposData);
-
-        setActivityData(events);
-
-        setSelectedRepo(
-          reposData[0]
-        );
-
-
-
-        /* RECENT SEARCHES */
-
-        setRecentSearches((prev) => {
-
-          const updated = [
-
-            username,
-
-            ...prev.filter(
-              (item) =>
-                item !== username
-            )
-          ];
-
-
-
-          return updated.slice(0, 5);
-        });
-
-
-
-
-
-        const aiRes = await fetch(
-
-          `${process.env.REACT_APP_API_URL}/api/github/ai-insights`,
-
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-
-            body: JSON.stringify({
-              repos:
-                reposData.slice(0, 10)
-            })
-          }
-        );
-
-
-
-        const aiData =
-          await aiRes.json();
-
-
-
-        setAiInsights(
-          aiData.insights
-        );
-
-
-
-        fetchFavorites();
-
-      } catch (error) {
-
-        console.log(error);
-
-        setError({
-          message:
-            'Something went wrong'
-        });
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
-
-
-    fetchData();
-
-  }, [username]);
-
-
-
-
-
-  /* =========================
-     FAVORITES
-  ========================= */
-
-  const fetchFavorites = async () => {
+    if (!username.trim()) return;
 
     try {
 
-      const response = await fetch(
+      setLoading(true);
+      setError('');
+      setAiInsights('');
+      const userResponse =
+  await axios.get(
+    `http://localhost:5000/api/github/user/${username}`
+  );
 
-        `${process.env.REACT_APP_API_URL}/api/github/favorites?userId=${
-          JSON.parse(
-            localStorage.getItem('user')
-          )?.id
-        }`
+const repoResponse =
+  await axios.get(
+    `http://localhost:5000/api/github/repos/${username}`
+  );
+
+      
+
+      setUserData(userResponse.data);
+
+      const sortedRepos =
+        repoResponse.data.sort(
+          (a, b) =>
+            b.stargazers_count -
+            a.stargazers_count
+        );
+
+      setRepos(sortedRepos);
+
+      /* RECENT SEARCHES */
+
+      let updatedRecent = [
+        username,
+        ...recentSearches.filter(
+          item => item !== username
+        )
+      ];
+
+      updatedRecent = updatedRecent.slice(0, 5);
+
+      setRecentSearches(updatedRecent);
+
+      localStorage.setItem(
+        'recentSearches',
+        JSON.stringify(updatedRecent)
       );
 
+      /* COMPUTE STATS FOR AI */
 
+      const langCount = {};
+      repoResponse.data.forEach(repo => {
+        if (repo.language) {
+          langCount[repo.language] = (langCount[repo.language] || 0) + 1;
+        }
+      });
+      const topLang = Object.keys(langCount)[0] || 'N/A';
+      const stars = repoResponse.data.reduce((s, r) => s + r.stargazers_count, 0);
 
-      const data =
-        await response.json();
+      fetchAIInsights(userResponse.data, sortedRepos, topLang, stars);
 
+    } catch (err) {
 
+      setError('User not found. Try another GitHub username.');
+      setUserData(null);
+      setRepos([]);
 
-      setFavorites(data);
-
-    } catch (error) {
-
-      console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* FAVORITES */
 
+  const addToFavorites = () => {
 
+    if (!userData) return;
 
+    const alreadyExists =
+      favorites.find(fav => fav.login === userData.login);
 
-  /* =========================
-     STATS
-  ========================= */
+    if (alreadyExists) {
+      showPopup(`@${userData.login} is already in your favorites!`, 'warning');
+      return;
+    }
 
-  const totalStars = repos.reduce(
-    (sum, repo) =>
-      sum +
-      repo.stargazers_count,
-    0
-  );
+    const updatedFavs = [
+      ...favorites,
+      {
+        login: userData.login,
+        avatar_url: userData.avatar_url
+      }
+    ];
 
+    setFavorites(updatedFavs);
+    localStorage.setItem('favorites', JSON.stringify(updatedFavs));
+    showPopup(`⭐ @${userData.login} added to favorites!`, 'success');
+  };
 
+  const removeFavorite = (login) => {
 
-  const totalForks = repos.reduce(
-    (sum, repo) =>
-      sum +
-      repo.forks_count,
-    0
-  );
+    const updated = favorites.filter(fav => fav.login !== login);
+    setFavorites(updated);
+    localStorage.setItem('favorites', JSON.stringify(updated));
+    showPopup(`❌ @${login} removed from favorites!`, 'warning');
+  };
 
+  /* STATS */
 
+  const totalStars =
+    repos.reduce((sum, repo) => sum + repo.stargazers_count, 0);
+
+  const totalForks =
+    repos.reduce((sum, repo) => sum + repo.forks_count, 0);
 
   const languageCount = {};
 
-
-
-  repos.forEach((repo) => {
-
+  repos.forEach(repo => {
     if (repo.language) {
-
-      languageCount[
-        repo.language
-      ] =
-
-        (languageCount[
-          repo.language
-        ] || 0) + 1;
+      languageCount[repo.language] =
+        (languageCount[repo.language] || 0) + 1;
     }
   });
 
-
+  const languageData =
+    Object.entries(languageCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value]) => ({ name, value }));
 
   const mostUsedLang =
+    Object.keys(languageCount)[0] || 'N/A';
 
-    Object.keys(languageCount)[0]
-      || 'N/A';
-
-
-
-
+  const topRepos = repos.slice(0, 10);
 
   return (
 
     <div className="dashboard">
 
-
-
       {/* PARTICLES */}
+      <canvas ref={canvasRef} className="dashboard-particles" />
 
-      <canvas
-        ref={canvasRef}
-        className="dashboard-particles"
-      />
+      {/* POPUP TOAST */}
+      {popup.show && (
+        <div className={`toast-popup ${popup.type}`}>
+          {popup.message}
+        </div>
+      )}
 
-
-
-      {/* HERO SECTION */}
+      {/* HERO */}
 
       {!userData && !loading && (
-
         <div className="dashboard-hero">
 
           <div className="hero-glow"></div>
 
-
-
           <h1 className="hero-title">
-
-            Analyze GitHub<br />
-
-            <span className="hero-accent">
-
-              Like Never Before.
-
-            </span>
-
+            Analyze GitHub <br />
+            <span className="hero-accent">Like Never Before.</span>
           </h1>
 
-
-
           <p className="hero-sub">
-
-            Explore developer profiles,
-            repositories, AI insights,
-            coding activity and tech stack
-            with futuristic analytics.
-
+            Explore developer profiles, repositories, AI insights,
+            coding activity and tech stack with futuristic analytics.
           </p>
 
+          <div className="dashboard-search">
+            <input
+              type="text"
+              placeholder="Enter GitHub username..."
+              value={username}
+              onChange={(e) => {
+
+  setUsername(e.target.value);
+
+  fetchSuggestions(e.target.value);
+
+  setShowSuggestions(true);
+
+}}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') fetchGitHubData();
+              }}
+            />
+            <button onClick={fetchGitHubData}>Analyze</button>
+            {showSuggestions && suggestions.length > 0 && (
+
+  <div className="suggestions-box">
+
+    {suggestions.map((user) => (
+
+      <div
+        key={user.id}
+        className="suggestion-item"
+        onClick={() => {
+
+          setUsername(user.login);
+
+          setSuggestions([]);
+
+          setShowSuggestions(false);
+
+        }}
+      >
+
+        <img
+          src={user.avatar_url}
+          alt={user.login}
+          className="suggestion-avatar"
+        />
+
+        <span>{user.login}</span>
+
+      </div>
+
+    ))}
+
+  </div>
+
+)}
+          </div>
+
+          <div className="hero-tags">
+            <button className="hero-tag" onClick={() => setUsername('torvalds')}>torvalds</button>
+            <button className="hero-tag" onClick={() => setUsername('gaearon')}>gaearon</button>
+            <button className="hero-tag" onClick={() => setUsername('openai')}>openai</button>
+            <button className="hero-tag" onClick={() => setUsername('vercel')}>vercel</button>
+          </div>
+
         </div>
       )}
-
-
 
       {/* LOADING */}
-
       {loading && (
-
-        <div className="dashboard-loading">
-
-          <div className="loading-spinner"></div>
-
-        </div>
+        <div className="empty-state">Loading GitHub analytics...</div>
       )}
-
-
 
       {/* ERROR */}
-
       {error && (
-
-        <div className="dashboard-error">
-
-          {error.message}
-
-        </div>
+        <div className="error-card">{error}</div>
       )}
 
+      {/* DASHBOARD */}
 
-
-      {/* MAIN CONTENT */}
-
-      {!loading && !error && userData && (
-
-        <>
+      {userData && !loading && (
+        <div className="dashboard-content">
 
           {/* PROFILE */}
-
           <div className="profile-card">
 
-            <img
-              src={userData.avatar_url}
-              alt={userData.login}
-              className="profile-avatar"
-            />
-
-
-
-            <div className="profile-info">
-
-              <h2 className="profile-name">
-
-                {userData.name ||
-                  userData.login}
-
-              </h2>
-
-
-
-              <p className="profile-username">
-
-                @{userData.login}
-
-              </p>
-
-
-
-              <p className="profile-bio">
-
-                {userData.bio}
-
-              </p>
-
-
-
-              <button
-
-                className="repo-detail-link"
-
-                onClick={async () => {
-
-                  try {
-
-                    const response =
-                      await fetch(
-
-                        `${process.env.REACT_APP_API_URL}/api/github/favorites`,
-
-                        {
-
-                          method: 'POST',
-
-                          headers: {
-                            'Content-Type':
-                              'application/json'
-                          },
-
-                          body: JSON.stringify({
-
-                            userId: JSON.parse(
-                              localStorage.getItem('user')
-                            )?.id,
-
-                            username:
-                              userData.login,
-
-                            avatar:
-                              userData.avatar_url,
-
-                            profileUrl:
-                              userData.html_url
-                          })
-                        }
-                      );
-
-
-
-                    const data =
-                      await response.json();
-
-
-
-                    toast.success(
-
-                      data.message ||
-                      'Added to favorites'
-                    );
-
-
-
-                    fetchFavorites();
-
-                  } catch (error) {
-
-                    console.log(error);
-
-                    toast.error(
-                      'Failed'
-                    );
-                  }
-                }}
-              >
-
-                ⭐ Add to Favorites
-
-              </button>
-
-            </div>
-
-          </div>
-
-
-
-
-
-          {/* RECENT SEARCHES */}
-
-          {recentSearches.length > 0 && (
-
-            <div className="recent-searches-box">
-
-              <h2>
-                Recent Searches
-              </h2>
-
-
-
-              <div className="recent-searches-list">
-
-                {recentSearches.map((item) => (
-
-                  <button
-
-                    key={item}
-
-                    className="recent-search-btn"
-
-                    onClick={() =>
-                      setUsername(item)
-                    }
-                  >
-
-                    {item}
-
+            <img src={userData.avatar_url} alt="avatar" />
+
+            <div>
+
+              <h2>{userData.name || userData.login}</h2>
+              <p>@{userData.login}</p>
+              <p>{userData.bio || 'No bio available'}</p>
+
+              <div className="favorite-actions">
+
+                <button
+                  className="favorite-btn"
+                  onClick={addToFavorites}
+                >
+                  ⭐ Add to Favorites
+                </button>
+                href={userData.html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                
+                  <button className="heart-btn">
+                    GitHub →
                   </button>
-                ))}
+                
+
+                
+                  
 
               </div>
 
             </div>
-          )}
-
-
-
-
-
-          {/* STATS */}
-
-          <div className="stat-cards-grid">
-
-            <StatCard
-              title="Repositories"
-              value={repos.length}
-            />
-
-
-
-            <StatCard
-              title="Stars"
-              value={totalStars}
-            />
-
-
-
-            <StatCard
-              title="Forks"
-              value={totalForks}
-            />
-
-
-
-            <StatCard
-              title="Top Language"
-              value={mostUsedLang}
-            />
 
           </div>
 
+          {/* RECENT */}
+          <div className="recent-searches-box">
 
+            <h3>Recent Searches</h3>
 
+            {recentSearches.map((item, index) => (
+              <button
+                key={index}
+                className="recent-search-btn"
+                onClick={() => setUsername(item)}
+              >
+                {item}
+              </button>
+            ))}
 
+          </div>
 
           {/* FAVORITES */}
+          <div className="favorites-box">
 
-          {favorites.length > 0 && (
+            <h3>Favorite Developers</h3>
 
-            <div className="favorites-box">
-
-              <h2>
-                Favorites
-              </h2>
-
-
-
-              <div className="favorites-list">
-
-                {favorites.map((fav) => (
+            {favorites.length === 0 ? (
+              <p>No favorites yet.</p>
+            ) : (
+              favorites.map((fav, index) => (
+                <div key={index} className="favorite-card">
 
                   <div
-                    key={fav._id}
-                    className="favorite-card"
-                    onClick={() =>
-                      setUsername(
-                        fav.username
-                      )
-                    }
+                    className="favorite-info"
+                    onClick={() => setUsername(fav.login)}
                   >
-
                     <img
-                      src={fav.avatar}
-                      alt={fav.username}
-                      className="profile-avatar"
+                      src={fav.avatar_url}
+                      alt=""
+                      className="favorite-avatar"
                     />
-
-
-
-                    <span>
-
-                      {fav.username}
-
-                    </span>
-
+                    <span>{fav.login}</span>
                   </div>
-                ))}
 
-              </div>
+                  <button
+                    className="remove-favorite-btn"
+                    onClick={() => removeFavorite(fav.login)}
+                  >
+                    ✕
+                  </button>
 
-            </div>
-          )}
-
-
-
-
-
-          {/* TABS */}
-
-          <div className="tabs">
-
-            <button
-
-              className={`tab ${
-                activeTab === 'overview'
-                  ? 'active'
-                  : ''
-              }`}
-
-              onClick={() =>
-                setActiveTab(
-                  'overview'
-                )
-              }
-            >
-
-              Overview
-
-            </button>
-
-
-
-            <button
-
-              className={`tab ${
-                activeTab === 'activity'
-                  ? 'active'
-                  : ''
-              }`}
-
-              onClick={() =>
-                setActiveTab(
-                  'activity'
-                )
-              }
-            >
-
-              Activity
-
-            </button>
+                </div>
+              ))
+            )}
 
           </div>
 
+          {/* STATS */}
+          <div className="stat-cards-grid">
+            <StatCard title="Repositories" value={repos.length} />
+            <StatCard title="Stars" value={totalStars} />
+            <StatCard title="Forks" value={totalForks} />
+            <StatCard title="Top Language" value={mostUsedLang} />
+          </div>
 
-
-
+          {/* TABS */}
+          <div className="tabs">
+            <button
+              className={activeTab === 'overview' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              className={activeTab === 'repositories' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('repositories')}
+            >
+              Repositories
+            </button>
+            <button
+              className={activeTab === 'activity' ? 'tab active' : 'tab'}
+              onClick={() => setActiveTab('activity')}
+            >
+              Activity
+            </button>
+          </div>
 
           {/* OVERVIEW */}
-
           {activeTab === 'overview' && (
-
             <>
 
-              <RepoChart
-                repos={repos}
-              />
-
-
-
-              <LanguageChart
-                repos={repos}
-              />
-
-
-
-              <div className="repos-section">
-
-                <div className="repos-list">
-
-                  {repos.map((repo) => (
-
-                    <RepoCard
-                      key={repo.id}
-                      repo={repo}
-                      selected={
-                        selectedRepo?.id ===
-                        repo.id
-                      }
-                      onClick={() =>
-                        setSelectedRepo(repo)
-                      }
+              {/* BAR CHART */}
+              <div className="chart-section">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={topRepos}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                      angle={-30}
+                      textAnchor="end"
+                      height={60}
                     />
-                  ))}
-
-                </div>
-
-
-
-
-
-                <div className="repo-detail">
-
-                  {selectedRepo && (
-
-                    <>
-
-                      <div className="repo-detail-header">
-
-                        <h2 className="repo-detail-name">
-
-                          {selectedRepo.name}
-
-                        </h2>
-
-
-
-                        <a
-                          href={
-                            selectedRepo.html_url
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          className="repo-detail-link"
-                        >
-
-                          Open Repo
-
-                        </a>
-
-                      </div>
-
-
-
-                      <p>
-
-                        {selectedRepo.description}
-
-                      </p>
-
-                    </>
-                  )}
-
-                </div>
-
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="stargazers_count" fill="#00FFA3" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
 
-
-
-
+              {/* PIE CHART */}
+              <div className="chart-section">
+                <ResponsiveContainer width="100%" height={380}>
+                  <PieChart>
+                    <Pie
+                      data={languageData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={130}
+                      innerRadius={50}
+                      paddingAngle={3}
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }
+                      labelLine={false}
+                    >
+                      {languageData.map((entry, index) => (
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} repos`, name]} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
               {/* AI INSIGHTS */}
+              <div
+                className="ai-insights-card"
+                onClick={() => setExpandedAI(!expandedAI)}
+              >
 
-              {aiInsights && (
+                <h2>🤖 AI Developer Insights</h2>
 
-                <div className="ai-insights-card">
-
-                  <h2>
-                    AI Developer Insights
-                  </h2>
-
-
-
-                  <p>
-
-                    {showFullInsights
-                      ? aiInsights
-                      : aiInsights.slice(
-                          0,
-                          300
-                        )
-                    }
-
+                {aiLoading ? (
+                  <p className="ai-loading-text">
+                    Analyzing profile with AI...
                   </p>
+                ) : (
+                  <p>
+                    {expandedAI
+                      ? aiInsights
+                      : aiInsights.slice(0, 200) + '...'}
+                  </p>
+                )}
 
+                {!aiLoading && (
+                  <span className="ai-expand-text">
+                    {expandedAI ? 'Show Less' : 'Read More'}
+                  </span>
+                )}
 
-
-                  {aiInsights.length >
-                    300 && (
-
-                    <button
-
-                      className="repo-detail-link"
-
-                      onClick={() =>
-                        setShowFullInsights(
-                          !showFullInsights
-                        )
-                      }
-                    >
-
-                      {showFullInsights
-                        ? 'Show Less'
-                        : 'Read Full Insights'
-                      }
-
-                    </button>
-                  )}
-
-                </div>
-              )}
+              </div>
 
             </>
           )}
 
-
-
-
-
-          {/* ACTIVITY */}
-
-          {activeTab === 'activity' && (
-
-            <ActivityHeatmap
-              activityData={
-                activityData
-              }
-            />
+          {/* REPOSITORIES */}
+          {activeTab === 'repositories' && (
+            <div className="repos-section">
+              <div className="repos-list">
+                {repos.map(repo => (
+                  <RepoCard key={repo.id} repo={repo} />
+                ))}
+              </div>
+            </div>
           )}
 
-        </>
+          {/* ACTIVITY */}
+          {activeTab === 'activity' && (
+            <ActivityHeatmap username={userData.login} />
+          )}
+
+        </div>
       )}
 
     </div>
   );
-}
+};
+
 
 export default Dashboard;
