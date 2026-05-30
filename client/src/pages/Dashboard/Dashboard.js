@@ -36,10 +36,20 @@ const Dashboard = () => {
   const [suggestions, setSuggestions] = useState([]);
 const [showSuggestions, setShowSuggestions] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [devScore, setDevScore] = useState(0);
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [compareUser1, setCompareUser1] = useState('');
+  const [compareUser2, setCompareUser2] = useState('');
+  const [compareData1, setCompareData1] = useState(null);
+  const [compareData2, setCompareData2] = useState(null);
+  const [winner, setWinner] = useState('');
+  
+  
+
+
 
   const [favorites, setFavorites] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
@@ -47,6 +57,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
   const [expandedAI, setExpandedAI] = useState(false);
   const [aiInsights, setAiInsights] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [showScore, setShowScore] = useState(false);
 
   const [popup, setPopup] = useState({ show: false, message: '', type: '' });
 
@@ -188,6 +199,81 @@ const [showSuggestions, setShowSuggestions] = useState(false);
     console.log('Suggestion Error');
   }
 };
+const calculateDevScore = (user, repos) => {
+
+  let score = 0;
+
+  // Repositories (25)
+  score += Math.min(user.public_repos, 50) / 50 * 25;
+
+  // Followers (20)
+  score += Math.min(user.followers, 100) / 100 * 20;
+
+  // Stars (20)
+  const stars =
+    repos.reduce(
+      (sum, repo) => sum + repo.stargazers_count,
+      0
+    );
+
+  score += Math.min(stars, 500) / 500 * 20;
+
+  // Profile Quality (15)
+  if (user.bio) score += 5;
+  if (user.company) score += 5;
+  if (user.blog) score += 5;
+
+  // Activity (20)
+  score += Math.min(repos.length, 20);
+
+  return Math.round(score);
+};
+const compareDevelopers = async () => {
+
+  console.log("COMPARE CLICKED");
+
+  if (!compareUser1 || !compareUser2) return;
+
+  try {
+
+    const user1 = await axios.get(
+      `http://localhost:5000/api/github/user/${compareUser1}`
+    );
+
+    console.log("USER1:", user1.data);
+
+    const user2 = await axios.get(
+      `http://localhost:5000/api/github/user/${compareUser2}`
+    );
+
+    console.log("USER2:", user2.data);
+
+    setCompareData1(user1.data);
+    setCompareData2(user2.data);
+    const score1 =
+  user1.data.followers +
+  user1.data.public_repos;
+
+const score2 =
+  user2.data.followers +
+  user2.data.public_repos;
+
+if (score1 > score2) {
+  setWinner(user1.data.login);
+} else if (score2 > score1) {
+  setWinner(user2.data.login);
+} else {
+  setWinner('Tie');
+}
+
+    console.log("STATE UPDATED");
+
+  } catch (error) {
+
+    console.log("COMPARE ERROR:", error);
+
+  }
+};
   
 
   
@@ -225,6 +311,13 @@ const repoResponse =
         );
 
       setRepos(sortedRepos);
+      const score =
+  calculateDevScore(
+    userResponse.data,
+    sortedRepos
+  );
+
+setDevScore(score);
 
       /* RECENT SEARCHES */
 
@@ -462,13 +555,10 @@ const repoResponse =
                 >
                   ⭐ Add to Favorites
                 </button>
-                href={userData.html_url}
-                  target="_blank"
-                  rel="noreferrer"
-                
-                  <button className="heart-btn">
-                    GitHub →
-                  </button>
+                <a href={userData.html_url} target="_blank" rel="noreferrer">
+  <button className="heart-btn">GitHub →</button>
+</a>
+               
                 
 
                 
@@ -532,6 +622,42 @@ const repoResponse =
             )}
 
           </div>
+          <div
+  className="dev-score-card"
+  onClick={() => setShowScore(!showScore)}
+>
+          
+  <h2>🏆 DevPulse Score</h2>
+
+  {showScore ? (
+
+  <>
+    <div className="score-number">
+      {devScore}/100
+    </div>
+
+    <div className="score-label">
+
+      {devScore >= 80
+        ? 'Elite Developer'
+        : devScore >= 60
+        ? 'Advanced Developer'
+        : devScore >= 40
+        ? 'Growing Developer'
+        : 'Beginner Developer'}
+
+    </div>
+  </>
+
+) : (
+
+  <div className="score-label">
+    Click to Reveal Score 👆
+  </div>
+
+)}
+
+</div>
 
           {/* STATS */}
           <div className="stat-cards-grid">
@@ -540,29 +666,40 @@ const repoResponse =
             <StatCard title="Forks" value={totalForks} />
             <StatCard title="Top Language" value={mostUsedLang} />
           </div>
-
           {/* TABS */}
-          <div className="tabs">
-            <button
-              className={activeTab === 'overview' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={activeTab === 'repositories' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('repositories')}
-            >
-              Repositories
-            </button>
-            <button
-              className={activeTab === 'activity' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('activity')}
-            >
-              Activity
-            </button>
-          </div>
+<div className="tabs">
 
+  <button
+    className={activeTab === 'overview' ? 'tab active' : 'tab'}
+    onClick={() => setActiveTab('overview')}
+  >
+    Overview
+  </button>
+
+  <button
+    className={activeTab === 'repositories' ? 'tab active' : 'tab'}
+    onClick={() => setActiveTab('repositories')}
+  >
+    Repositories
+  </button>
+
+  <button
+    className={activeTab === 'activity' ? 'tab active' : 'tab'}
+    onClick={() => setActiveTab('activity')}
+  >
+    Activity
+  </button>
+
+  <button
+    className={activeTab === 'compare' ? 'tab active' : 'tab'}
+    onClick={() => setActiveTab('compare')}
+  >
+    Compare
+  </button>
+
+</div>
+
+          
           {/* OVERVIEW */}
           {activeTab === 'overview' && (
             <>
@@ -657,18 +794,103 @@ const repoResponse =
               </div>
             </div>
           )}
-
           {/* ACTIVITY */}
-          {activeTab === 'activity' && (
-            <ActivityHeatmap username={userData.login} />
-          )}
+{activeTab === 'activity' && (
+  <ActivityHeatmap username={userData.login} />
+)}
+{/* COMPARE */}
+{activeTab === 'compare' && (
+
+  <div className="compare-section">
+
+    <input
+      type="text"
+      placeholder="First Username"
+      value={compareUser1}
+      onChange={(e) =>
+        setCompareUser1(e.target.value)
+      }
+    />
+
+    <input
+      type="text"
+      placeholder="Second Username"
+      value={compareUser2}
+      onChange={(e) =>
+        setCompareUser2(e.target.value)
+      }
+    />
+
+    <button
+      onClick={compareDevelopers}
+    >
+      Compare
+    </button>
+
+    {compareData1 && compareData2 && (
+
+      <div className="compare-results">
+        <>
+        {winner && (
+  <div className="winner-card">
+    🏆 Winner: {winner}
+  </div>
+)}
+        </>
+
+        <div className="compare-card">
+
+          <h3>{compareData1.login}</h3>
+
+          <p>
+            Repositories: {compareData1.public_repos}
+          </p>
+
+          <p>
+            Followers: {compareData1.followers}
+          </p>
+
+          <p>
+            Following: {compareData1.following}
+          </p>
 
         </div>
+
+        <div className="compare-card">
+
+          <h3>{compareData2.login}</h3>
+
+          <p>
+            Repositories: {compareData2.public_repos}
+          </p>
+
+          <p>
+            Followers: {compareData2.followers}
+          </p>
+
+          <p>
+            Following: {compareData2.following}
+          </p>
+
+        </div>
+
+      </div>
+
+    )}
+      </div>
+
+)}
+        </div>
+
       )}
 
     </div>
   );
 };
 
-
 export default Dashboard;
+
+
+
+  
+
