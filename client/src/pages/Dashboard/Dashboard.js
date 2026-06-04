@@ -58,6 +58,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
   const [expandedAI, setExpandedAI] = useState(false);
   const [aiInsights, setAiInsights] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [techRecommendation, setTechRecommendation] = useState('');
   const [showScore, setShowScore] = useState(false);
 
   const [popup, setPopup] = useState({ show: false, message: '', type: '' });
@@ -229,6 +230,41 @@ const calculateDevScore = (user, repos) => {
 
   return Math.round(score);
 };
+const generateTechRecommendation = (lang) => {
+
+  let recommendation = '';
+
+  switch (lang) {
+
+    case 'JavaScript':
+      recommendation =
+        'JavaScript → React → Node.js → MongoDB → Full Stack Developer';
+      break;
+
+    case 'Python':
+      recommendation =
+        'Python → Flask/Django → PostgreSQL → Docker → Backend Engineer';
+      break;
+
+    case 'Java':
+      recommendation =
+        'Java → Spring Boot → MySQL → Microservices → Software Engineer';
+      break;
+
+    case 'C++':
+      recommendation =
+        'C++ → DSA → Competitive Programming → System Design → SDE';
+      break;
+
+    default:
+      recommendation =
+        'Build more projects and explore modern web technologies';
+
+  }
+
+  setTechRecommendation(recommendation);
+
+};
 const compareDevelopers = async () => {
 
   console.log("COMPARE CLICKED");
@@ -275,6 +311,7 @@ if (score1 > score2) {
 
   }
 };
+
 /* DOWNLOAD PDF */
 
 const downloadPDF = () => {
@@ -527,6 +564,7 @@ setDevScore(score);
       const stars = repoResponse.data.reduce((s, r) => s + r.stargazers_count, 0);
 
       fetchAIInsights(userResponse.data, sortedRepos, topLang, stars);
+      generateTechRecommendation(topLang);
 
     } catch (err) {
 
@@ -603,9 +641,10 @@ setDevScore(score);
   const topRepos = repos.slice(0, 10);
 
   return (
-
     <div className="dashboard">
+    
 
+   
       {/* PARTICLES */}
       <canvas ref={canvasRef} className="dashboard-particles" />
 
@@ -750,6 +789,7 @@ setDevScore(score);
             </div>
 
           </div>
+          
 
           {/* RECENT */}
           <div className="recent-searches-box">
@@ -961,6 +1001,15 @@ setDevScore(score);
                 )}
 
               </div>
+              {/* TECH RECOMMENDATION */}
+
+<div className="tech-recommendation-card">
+
+  <h2>🚀 Tech Stack Recommendation</h2>
+
+  <p>{techRecommendation}</p>
+
+</div>
 
             </>
           )}
@@ -1074,4 +1123,3 @@ export default Dashboard;
 
 
   
-
