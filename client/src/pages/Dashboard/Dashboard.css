@@ -843,3 +843,48 @@
   font-size: 15px;
 
 }
+/* STREAK ANALYSIS */
+
+.streak-card {
+
+  margin-top: 24px;
+
+  padding: 28px;
+
+  border-radius: 24px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(255,165,0,0.08),
+    rgba(255,120,0,0.04)
+  );
+
+  border: 1px solid rgba(255,165,0,0.15);
+
+  backdrop-filter: blur(18px);
+
+  box-shadow: 0 0 24px rgba(255,165,0,0.08);
+
+}
+
+.streak-card h2 {
+
+  color: #FFA500;
+
+  margin-bottom: 18px;
+
+  font-size: 26px;
+
+  font-family: 'Space Mono', monospace;
+
+}
+
+.streak-status {
+
+  font-size: 2rem;
+
+  font-weight: 700;
+
+  color: #ffffff;
+
+}

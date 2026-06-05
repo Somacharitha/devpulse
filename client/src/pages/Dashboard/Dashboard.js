@@ -60,6 +60,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [techRecommendation, setTechRecommendation] = useState('');
   const [careerSuggestion, setCareerSuggestion] = useState('');
+  const [streakAnalysis, setStreakAnalysis] = useState('');
   const [showScore, setShowScore] = useState(false);
 
   const [popup, setPopup] = useState({ show: false, message: '', type: '' });
@@ -334,7 +335,44 @@ const generateCareerSuggestion = (lang) => {
   setCareerSuggestion(career);
 
 };
+/* Streak Analysis*/
+const generateStreakAnalysis = (repos) => {
 
+  const totalRepos = repos.length;
+
+  let analysis = '';
+
+  if (totalRepos >= 100) {
+
+    analysis =
+      '🔥 Extremely Active Developer';
+
+  } else if (totalRepos >= 50) {
+
+    analysis =
+      '🚀 Highly Consistent Developer';
+
+  } else if (totalRepos >= 20) {
+
+    analysis =
+      '💪 Active Developer';
+
+  } else if (totalRepos >= 5) {
+
+    analysis =
+      '🌱 Growing Developer';
+
+  } else {
+
+    analysis =
+      '👶 Beginner Developer';
+
+  }
+
+  setStreakAnalysis(analysis);
+
+};
+/*compare Developers*/
 const compareDevelopers = async () => {
 
   console.log("COMPARE CLICKED");
@@ -636,6 +674,7 @@ setDevScore(score);
       fetchAIInsights(userResponse.data, sortedRepos, topLang, stars);
       generateTechRecommendation(topLang);
       generateCareerSuggestion(topLang);
+      generateStreakAnalysis(sortedRepos);
 
     } catch (err) {
 
@@ -1086,6 +1125,15 @@ setDevScore(score);
   <h2>🎯 AI Career Suggestion</h2>
 
   <p>{careerSuggestion}</p>
+
+</div>
+<div className="career-card">
+
+  <h2>🔥 Developer Activity Analysis</h2>
+
+  <div className="career-role">
+    {streakAnalysis}
+  </div>
 
 </div>
 
