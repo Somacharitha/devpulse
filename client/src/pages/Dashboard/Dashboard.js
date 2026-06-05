@@ -59,6 +59,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiInsights, setAiInsights] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [techRecommendation, setTechRecommendation] = useState('');
+  const [careerSuggestion, setCareerSuggestion] = useState('');
   const [showScore, setShowScore] = useState(false);
 
   const [popup, setPopup] = useState({ show: false, message: '', type: '' });
@@ -230,6 +231,7 @@ const calculateDevScore = (user, repos) => {
 
   return Math.round(score);
 };
+/*Tech Recommendation*/
 const generateTechRecommendation = (lang) => {
 
   let recommendation = '';
@@ -238,33 +240,101 @@ const generateTechRecommendation = (lang) => {
 
     case 'JavaScript':
       recommendation =
-        'JavaScript → React → Node.js → MongoDB → Full Stack Developer';
+        'Frontend Engineering • Full Stack Development • React Native • SaaS Products';
       break;
 
     case 'Python':
       recommendation =
-        'Python → Flask/Django → PostgreSQL → Docker → Backend Engineer';
+        'AI/ML • Backend Development • Data Engineering • Automation';
       break;
 
     case 'Java':
       recommendation =
-        'Java → Spring Boot → MySQL → Microservices → Software Engineer';
+        'Backend Engineering • Enterprise Applications • FinTech • Android Development';
       break;
 
     case 'C++':
       recommendation =
-        'C++ → DSA → Competitive Programming → System Design → SDE';
+        'System Programming • Competitive Programming • Game Development • Embedded Systems';
+      break;
+
+    case 'TypeScript':
+      recommendation =
+        'Frontend Engineering • Full Stack Development • SaaS Products • Developer Tools';
+      break;
+
+    case 'Go':
+      recommendation =
+        'Cloud Engineering • DevOps • Platform Engineering • Site Reliability Engineering';
+      break;
+
+    case 'Rust':
+      recommendation =
+        'Systems Programming • Cyber Security • Blockchain • Performance Engineering';
+      break;
+
+    case 'C#':
+      recommendation =
+        'Enterprise Development • Backend Engineering • Game Development • Cloud Applications';
+      break;
+
+    case 'PHP':
+      recommendation =
+        'Backend Development • CMS Development • Web Applications';
       break;
 
     default:
       recommendation =
-        'Build more projects and explore modern web technologies';
-
+        'Build more projects and explore modern technologies';
   }
 
   setTechRecommendation(recommendation);
 
 };
+/* Career Suggestion*/
+const generateCareerSuggestion = (lang) => {
+
+  let career = '';
+
+  switch (lang) {
+
+    case 'JavaScript':
+    case 'TypeScript':
+      career = 'Full Stack Engineer';
+      break;
+
+    case 'Python':
+      career = 'AI / Machine Learning Engineer';
+      break;
+
+    case 'Java':
+      career = 'Backend Software Engineer';
+      break;
+
+    case 'Go':
+      career = 'Cloud / DevOps Engineer';
+      break;
+
+    case 'Rust':
+      career = 'Systems Engineer';
+      break;
+
+    case 'C#':
+      career = 'Enterprise Software Engineer';
+      break;
+
+    case 'C++':
+      career = 'System Software Engineer';
+      break;
+
+    default:
+      career = 'Software Developer';
+  }
+
+  setCareerSuggestion(career);
+
+};
+
 const compareDevelopers = async () => {
 
   console.log("COMPARE CLICKED");
@@ -565,6 +635,7 @@ setDevScore(score);
 
       fetchAIInsights(userResponse.data, sortedRepos, topLang, stars);
       generateTechRecommendation(topLang);
+      generateCareerSuggestion(topLang);
 
     } catch (err) {
 
@@ -1008,6 +1079,13 @@ setDevScore(score);
   <h2>🚀 Tech Stack Recommendation</h2>
 
   <p>{techRecommendation}</p>
+
+</div>
+<div className="tech-recommendation-card">
+
+  <h2>🎯 AI Career Suggestion</h2>
+
+  <p>{careerSuggestion}</p>
 
 </div>
 
