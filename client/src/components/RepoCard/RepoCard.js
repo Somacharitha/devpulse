@@ -11,8 +11,43 @@ const LANG_COLORS = {
   Go: '#00ADD8',
   Rust: '#DEA584',
 };
+const calculateRepoScore = (repo) => {
+
+  let score = 0;
+
+  score += Math.min(repo.stargazers_count, 100) * 0.4;
+
+  score += Math.min(repo.forks_count, 50) * 0.4;
+
+  if (repo.description) score += 10;
+
+  if (repo.language) score += 10;
+
+  return Math.min(Math.round(score), 100);
+
+};
+const getRepoRating = (score) => {
+
+  if (score >= 80) {
+    return 'Excellent Repository';
+  }
+
+  if (score >= 60) {
+    return 'Strong Repository';
+  }
+
+  if (score >= 40) {
+    return 'Good Repository';
+  }
+
+  return 'Needs Improvement';
+
+};
 
 function RepoCard({ repo, onClick, selected }) {
+  const repoScore = calculateRepoScore(repo);
+
+const repoRating = getRepoRating(repoScore);
   return (
     <div
       className={`repo-card ${selected ? 'selected' : ''}`}
@@ -31,22 +66,35 @@ function RepoCard({ repo, onClick, selected }) {
       )}
 
       <div className="repo-card-footer">
-        {repo.language && (
-          <div className="repo-language">
-            <span
-              className="lang-dot"
-              style={{
-                background: LANG_COLORS[repo.language] || '#888'
-              }}
-            />
-            <span>{repo.language}</span>
-          </div>
-        )}
-        <span className="repo-updated">
-          Updated {new Date(repo.updated_at).toLocaleDateString()}
-        </span>
-      </div>
+  {repo.language && (
+    <div className="repo-language">
+      <span
+        className="lang-dot"
+        style={{
+          background: LANG_COLORS[repo.language] || '#888'
+        }}
+      />
+      <span>{repo.language}</span>
     </div>
+  )}
+
+  <span className="repo-updated">
+    Updated {new Date(repo.updated_at).toLocaleDateString()}
+  </span>
+</div>
+
+<div className="repo-review-section">
+
+  <div className="repo-score">
+    Score: {repoScore}/100
+  </div>
+
+  <div className="repo-rating">
+    {repoRating}
+  </div>
+  </div>
+
+</div>
   );
 }
 

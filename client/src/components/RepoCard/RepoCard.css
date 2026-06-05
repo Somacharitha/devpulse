@@ -85,3 +85,34 @@
   color: var(--muted);
   font-size: 11px;
 }
+.repo-review-section {
+
+  margin-top: 16px;
+
+  padding-top: 14px;
+
+  border-top: 1px solid rgba(255,255,255,0.08);
+
+}
+
+.repo-score {
+
+  color: #00FFA3;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  margin-bottom: 6px;
+
+}
+
+.repo-rating {
+
+  color: #A0AEC0;
+
+  font-size: 13px;
+
+  font-weight: 500;
+
+}
