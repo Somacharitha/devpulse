@@ -170,26 +170,44 @@ devpulse/
 └── README.md
 
 🎯 Future Enhancements
+
 GitHub Contribution Heatmaps
+
 AI Resume Suggestions
+
 GitHub Profile Score
+
 Team Analytics Dashboard
+
 GitHub Organization Analysis
+
 Dark/Light Theme Support
+
 AI Career Recommendations
+
 Real-Time GitHub Activity Tracking
+
 📈 Learning Outcomes
+
 
 This project strengthened my understanding of:
 
 Full Stack Development
+
 REST API Integration
+
 Authentication & Authorization
+
 Database Design
+
 Data Visualization
+
 Performance Optimization
+
 AI Integration Concepts
+
 Software Architecture
+
 🤝 Contributing
 
 Contributions, suggestions, and feature requests are welcome.
